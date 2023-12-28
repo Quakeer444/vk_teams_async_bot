@@ -187,7 +187,9 @@ class Bot(object):
             replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
             forwardMsgId=forward_msg_id,
-            inlineKeyboardMarkup=str(inline_keyboard_markup),
+            inlineKeyboardMarkup=str(inline_keyboard_markup)
+            if inline_keyboard_markup is not None
+            else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
         )
@@ -206,7 +208,9 @@ class Bot(object):
             chatId=chat_id,
             msgId=msg_id,
             text=text,
-            inlineKeyboardMarkup=str(inline_keyboard_markup),
+            inlineKeyboardMarkup=str(inline_keyboard_markup)
+            if inline_keyboard_markup is not None
+            else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
         )
