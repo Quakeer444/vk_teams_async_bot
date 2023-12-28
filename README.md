@@ -1,5 +1,7 @@
 # **Table of Contents**
 
+- [Introduction](#introduction)
+- [Implemented methods in this library](#implemented-methods-in-this-library)
 - [Examples](#examples)
   - [Basic initialization](#basic-initialization)
   - [Send messages](#send-messages)
@@ -7,6 +9,30 @@
     - [MarkdownV2](#markdownv2) 
   - [InlineKeyboard](#inlinekeyboard)
   - [Middleware](#middleware)
+
+
+# Introduction
+This library provides the ability to interact with VK Teams Bot API.
+
+API description  - https://teams.vk.com/botapi/
+
+[Метабот](https://teams.vk.com/profile/70001) for creating a bot and getting a token.
+
+# Implemented methods in this library
+
+
+| method | ENDPOINT                       | EXISTS | name in library           |
+|--------|--------------------------------|--------|---------------------------|
+| GET    | /self/get                      | ✅      | bot.self_get              |
+| GET    | /messages/sendText             | ✅      | bot.send_text             |
+| GET    | /messages/sendTextWithDeeplink | ❌      |                           |
+| GET    | /messages/sendFile             | ✅      | bot.send_file_by_id       |
+| POST   | /messages/sendFile             | ✅      | bot.send_file             |
+| GET    | /messages/sendVoice            | ✅      | bot.send_voice            |
+| POST   | /messages/sendVoice            | ✅      | bot.send_voice_by_id      |
+| GET    | /messages/editText             | ✅      | bot.edit_text             |
+| GET    | /messages/deleteMessages       | ✅      | bot.delete_msg            |
+| GET    | /messages/answerCallbackQuery  | ✅      | bot.answer_callback_query |
 
 
 
