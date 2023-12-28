@@ -24,7 +24,7 @@ class Parts(Enum):
 
 
 @unique
-class ChatType(Enum):
+class ChatType(StrEnum):
     PRIVATE = "private"
     GROUP = "group"
     CHANNEL = "channel"
