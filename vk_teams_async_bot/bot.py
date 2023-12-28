@@ -167,7 +167,7 @@ class Bot(object):
             parseMode=parse_mode,
         )
 
-    async def send_file_id(
+    async def send_file_by_id(
         self,
         chat_id: str,
         file_id: str,
@@ -242,7 +242,9 @@ class Bot(object):
             replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
             forwardMsgId=forward_msg_id,
-            inline_keyboard_markup=str(inline_keyboard_markup),
+            inline_keyboard_markup=str(inline_keyboard_markup)
+            if inline_keyboard_markup is not None
+            else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parse_mode=parse_mode,
         )
@@ -271,3 +273,57 @@ class Bot(object):
         }
         """
         return await self.session.get_request("self/get")
+
+    async def send_voice(
+        self,
+        chat_id: str,
+        file_path: str,
+        filename: str,
+        reply_msg_id: list[int] | None = None,
+        forward_chat_id: str | None = None,
+        forward_msg_id: list[int] | None = None,
+        inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+        _format: Format | list[dict] | str | None = None,
+        parse_mode: ParseMode | None = None
+    ) -> dict:
+
+        data = FormData()
+        data.add_field("file", await async_read_file(file_path), filename=filename)
+
+        return await self.session.post_request(
+            endpoint='messages/sendVoice',
+            chatId=chat_id,
+            body=data,
+            replyMsgId=reply_msg_id,
+            forwardChatId=forward_chat_id,
+            forwardMsgId=forward_msg_id,
+            inline_keyboard_markup=str(inline_keyboard_markup)
+            if inline_keyboard_markup is not None
+            else None,
+            format=_format if isinstance(_format, str) else format_to_json(_format),
+            parseMode=parse_mode,
+        )
+
+
+    async def send_voice_by_id(
+            self,
+            chat_id: str,
+            file_id: str,
+            reply_msg_id: list[int] | None = None,
+            forward_chat_id: list[str] | None = None,
+            forward_msg_id: list[int] | None = None,
+            inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+    ) -> dict:
+
+        return await self.session.get_request(
+            endpoint='messages/sendVoice',
+            chatId=chat_id,
+            fileId=file_id,
+            replyMsgId=reply_msg_id,
+            forwardChatId=forward_chat_id,
+            forwardMsgId=forward_msg_id,
+            inlineKeyboardMarkup=str(inline_keyboard_markup)
+            if inline_keyboard_markup is not None
+            else None,
+        )
+
