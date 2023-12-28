@@ -92,4 +92,5 @@ class Event(object):
             self.callbackData = data["callbackData"]
 
     def __repr__(self):
-        return "Event(type='{self.type}', data='{self.data}')".format(self=self)
+        return ("Event(type='{self.type}', data='{self.data}', "
+                "middleware_data='{self.middleware_data}')").format(self=self)
