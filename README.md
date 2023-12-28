@@ -6,6 +6,7 @@
     - [Without formatting](#without-formatting)
     - [MarkdownV2](#markdownv2) 
   - [InlineKeyboard](#inlinekeyboard)
+  - [Middleware](#middleware)
 
 
 
@@ -145,6 +146,64 @@ You can specify the number of buttons in a row
 `InlineKeyboardMarkup(buttons_in_row=1)`
 
 ![image](images/img_3.png)
+
+## Middleware
+You can check the incoming request or add any data for further use in handlers.
+
+### Check the access rights of the user or group
+```python
+from vk_teams_async_bot.middleware import Middleware
+
+class AccessMiddleware(Middleware):
+    async def handle(self, event, bot):
+        allowed_chats = [
+            "id@chat.agent",
+        ]
+
+        if event.chat.chatId not in allowed_chats:
+            text = f"Does not have rights to use the bot - {event.chat.chatId}"
+            await bot.send_text(chat_id=event.chat.chatId, text=text)
+            raise PermissionError(text)
+        return event
+
+async def main():
+    app.dispatcher.middlewares = [AccessMiddleware(),]
+
+    await app.start_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+
+### Add a user or group role
+Let's imagine that we have a data source on our side with roles or user rights that we want to use to access a specific menu or handler
+
+```python
+from vk_teams_async_bot.middleware import Middleware
+
+class UserRoleMiddleware(Middleware):
+    async def handle(self, event, bot):
+        roles = {
+            "id@chat.agent": "admin",
+        }
+        event.middleware_data.update({"role": roles.get(event.chat.chatId)})
+        logger.debug(
+            "UserRoleMiddleware role for {chatID} - {role}".format(
+                chatID=event.chat.chatId, role=event.middleware_data.get("role")
+            )
+        )
+        return event
+
+
+async def main():
+    app.dispatcher.middlewares = [UserRoleMiddleware(),]
+
+    await app.start_polling()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
 
 
 
