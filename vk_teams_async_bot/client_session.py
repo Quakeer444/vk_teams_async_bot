@@ -33,7 +33,7 @@ class VKTeamsSession:
             raise_for_status=True,
             timeout=aiohttp.ClientTimeout(total=self.timeout_session),
             loop=asyncio.get_event_loop(),
-            connector=aiohttp.TCPConnector(verify_ssl=False),
+            connector=aiohttp.TCPConnector(ssl=False),
         )
         logger.debug(f"The session was created successfully. {self._session}")
 
