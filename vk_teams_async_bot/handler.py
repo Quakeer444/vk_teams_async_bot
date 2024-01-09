@@ -12,20 +12,37 @@ class BaseHandler(object):
     def check(self, event: Event):
         return bool(not self.filters or self.filters(event))
 
-    def check_signature(self, bot):
+    async def check_signature(self, bot):
         signature = inspect.signature(self.callback)
         depends = {}
+
         for key, value in signature.parameters.items():
+            is_annotated = value.annotation.__dict__.get("__metadata__")
+            value = value.annotation.__dict__.get("__metadata__")[0] if is_annotated else value.annotation
+
             depend = [
-                depend for depend in bot.depends if isinstance(depend, value.annotation)
+                depend for depend in bot.depends if depend == value
             ]
             if depend:
-                depends.update({key: depend[0]})
+                result = value
+                depends.update({key: result})
         return depends
 
     async def handle(self, event, bot):
-        handle_kwargs = self.check_signature(bot)
-        await self.callback(event, bot, **handle_kwargs)
+        handle_kwargs = await self.check_signature(bot)
+
+        objects = {}
+        for item_name, item_func in handle_kwargs.items():
+            if inspect.isasyncgenfunction(item_func):
+                item = item_func()
+                objects[item_name] = await anext(item)
+                continue
+            if inspect.iscoroutinefunction(item_func):
+                objects[item_name] = await item_func()
+                continue
+            if inspect.isfunction(item_func):
+                objects[item_name] = item_func()
+        await self.callback(event, bot, **objects)
 
 
 class MessageHandler(BaseHandler):
