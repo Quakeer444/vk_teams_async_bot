@@ -32,7 +32,7 @@ class StateData:
     user: str
     state: str | None = None
     data: Mapping | None = None
-    expire_session: Seconds = 60
+    expire_session: Seconds = 300
     additional: Mapping | None = None
 
 
