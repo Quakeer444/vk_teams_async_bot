@@ -43,6 +43,9 @@ class UserState(Protocol):
     Attributes:
         message_timeout_to_users: Флаг отправки сообщения пользователю или в
                                   группу о завершение сессии его состояний
+
+        session_timeout_seconds: Через какое время происходит проверка состояний пользователя
+        session_timeout_debug: Вывод logger состояния пользователей
         keyboard_session_end: При установленном message_timeout_to_users,
                               отправляется сообщение с клавиатурой
                               (например переход в главное меню)
@@ -50,6 +53,8 @@ class UserState(Protocol):
     """
 
     message_timeout_to_users = False
+    session_timeout_seconds = 60
+    session_timeout_debug = False
     keyboard_session_end = lambda a: '[[{"text": "empty", "callbackData": "empty"}]]'
 
     async def set(self, state_data: StateData):
@@ -150,8 +155,9 @@ class DictUserState(UserState):
 
     async def session_timeout_handler(self) -> None:
         while True:
-            await asyncio.sleep(5)
-            logger.debug(f"user_states - {self.users_states}")
+            await asyncio.sleep(self.session_timeout_seconds)
+            if self.session_timeout_debug:
+                logger.debug(f"user_states - {self.users_states}")
             await self._session_timeout_handler()
 
     async def _session_timeout_handler(self) -> None:
