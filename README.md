@@ -1,3 +1,8 @@
+[![PyPi Package Version](https://img.shields.io/pypi/v/vk-teams-async-bot)](https://pypi.org/project/vk-teams-async-bot/)
+[![Package dwn stats](https://img.shields.io/pypi/dm/vk-teams-async-bot)](https://pypi.org/project/vk-teams-async-bot/)
+[![Repo size](https://img.shields.io/github/repo-size/Quakeer444/vk_teams_async_bot)](https://pypi.org/project/vk-teams-async-bot/)
+
+
 # **Table of Contents**
 
 - [Introduction](#introduction)
