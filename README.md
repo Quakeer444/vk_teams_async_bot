@@ -6,6 +6,7 @@
 # **Table of Contents**
 
 - [Introduction](#introduction)
+- [Installing](#installing)
 - [Implemented methods in this library](#implemented-methods-in-this-library)
 - [Examples](#examples)
   - [Basic initialization](#basic-initialization)
@@ -22,6 +23,13 @@ This library provides the ability to interact with VK Teams Bot API.
 API description  - https://teams.vk.com/botapi/
 
 [Метабот](https://teams.vk.com/profile/70001) for creating a bot and getting a token.
+
+# Installing
+```python
+pip install -U vk-teams-async-bot
+# OR
+poetry add vk-teams-async-bot
+```
 
 # Implemented methods in this library
 
