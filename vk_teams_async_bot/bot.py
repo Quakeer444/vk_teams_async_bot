@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from io import BytesIO
 from typing import TypeAlias
 
 from aiohttp import FormData
@@ -218,7 +219,8 @@ class Bot(object):
     async def send_file(
         self,
         chat_id: str,
-        file_path: str,
+        bytes_io_object: BytesIO | None = None,
+        file_path: str | None = None,
         filename: str = None,
         caption: str | None = None,
         reply_msg_id: list[int] | None = None,
@@ -229,10 +231,17 @@ class Bot(object):
         parse_mode: ParseMode | None = None,
     ) -> dict:
         """
-        Метод для отправки сообщения с файлом по его file.
+        Метод для отправки сообщения с файлом. Файл читается с пути если указан file_path,
+        в случае передачи объекта BytesIO указать только параметр bytes_object
         """
         data = FormData()
-        data.add_field("file", await async_read_file(file_path), filename=filename)
+
+        if file_path:
+            data.add_field(
+                "file", await async_read_file(file_path), filename=filename)
+        if bytes_io_object:
+            data.add_field(
+                "file", bytes_io_object, filename=filename, content_type='application/octet-stream')
 
         return await self.session.post_request(
             endpoint="messages/sendFile",
