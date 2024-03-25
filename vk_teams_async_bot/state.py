@@ -86,42 +86,42 @@ class DictUserState(UserState):
     def get_user_data(self, user: str) -> dict | None:
         return self.users_states.get(user, {}).get("data")
 
-    def update_user_data(self, user: str, data: dict) -> None:
+    def update_user_data(self, user: str, data: dict, expire_session: int = 60) -> None:
         try:
             for key, value in data.items():
                 self.users_states[user]["data"][key] = value
-            self.set_new_expire_session(user)
+            self.set_new_expire_session(user, expire_session=expire_session)
         except KeyError as err:
             logger.error(err, exc_info=True)
 
     def get_user_state(self, user: str) -> str | None:
         return self.users_states.get(user, {}).get("state")
 
-    def update_user_state(self, user: str, state: str) -> None:
+    def update_user_state(self, user: str, state: str, expire_session: int = 60) -> None:
         try:
             if self.users_states.get(user):
                 self.users_states[user]["state"] = state
-                self.set_new_expire_session(user)
+                self.set_new_expire_session(user, expire_session=expire_session)
         except KeyError as err:
             logger.error(err, exc_info=True)
 
     def get_user_additional(self, user: str) -> dict | None:
         if self.users_states.get(user):
-            return self.users_states["user"].get("additional")
+            return self.users_states[user].get("additional")
         return None
 
-    def update_user_additional(self, user: str, additional: dict) -> None:
+    def update_user_additional(self, user: str, additional: dict, expire_session: int = 60) -> None:
         try:
             if self.users_states.get(user):
-                self.users_states["user"]["additional"] = additional
-                self.set_new_expire_session(user)
+                self.users_states[user]["additional"] = additional
+                self.set_new_expire_session(user, expire_session=expire_session)
         except KeyError as err:
             logger.error(err, exc_info=True)
 
-    def set_new_expire_session(self, user: str, expire_session: Seconds = 15) -> None:
+    def set_new_expire_session(self, user: str, expire_session: Seconds = 60) -> None:
         try:
             if self.users_states.get(user):
-                self.users_states["user"]["expire_session"] = datetime.now() + timedelta(
+                self.users_states[user]["expire_session"] = datetime.now() + timedelta(
                     seconds=expire_session
                 )
         except KeyError as err:
