@@ -15,8 +15,8 @@ Seconds: TypeAlias = int
 
 class VKTeamsSession:
     """
-    Отвечает за взаимодействие с VK Teams API.
-    Создаёт сессию и производит GET/POST запросы
+    Interaction with VK Teams API.
+    Creates a session and makes GET/POST requests
     """
 
     _session: ClientSession | None = None
@@ -35,7 +35,7 @@ class VKTeamsSession:
         self.delay_between_retries: None | int = None
 
     async def _create_session(self) -> None:
-        """Создание сессии для поллинга и запросов к Bot API"""
+        """Creating an aiohttp session """
         self._session = aiohttp.ClientSession(
             base_url=self.base_url,
             raise_for_status=True,
@@ -46,7 +46,7 @@ class VKTeamsSession:
         logger.debug(f"The session was created successfully. {self._session}")
 
     async def _check_session(self) -> None:
-        """Проверка существования открытой сессии aiohttp.ClientSession"""
+        """Checking the existence of an open aiohttp session"""
         if not self._session:
             logger.debug("Starting creating a new session")
             await self._create_session()
@@ -58,6 +58,15 @@ class VKTeamsSession:
             _count_request_retries: int,
             **kwargs
     ) -> dict:
+        """
+        GET request
+
+        :param endpoint: endpoint VK Teams API
+        :param _count_request_retries: Number of request retries in case of
+               500+ code response from server VK Teams
+        :param kwargs: Request params
+        :return:
+        """
         await self._check_session()
 
         params = {"token": self.bot_token, **kwargs}
@@ -91,6 +100,16 @@ class VKTeamsSession:
             body: FormData | dict,
             **kwargs
     ) -> dict:
+        """
+        POST request
+
+        :param endpoint: endpoint VK Teams API
+        :param _count_request_retries: Number of request retries in case of
+               500+ code response from server VK Teams
+        :param body: Request body
+        :param kwargs: Request params
+        :return:
+        """
         await self._check_session()
 
         params = {"token": self.bot_token, **kwargs}
