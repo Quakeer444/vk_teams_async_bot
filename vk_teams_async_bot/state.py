@@ -13,20 +13,21 @@ Seconds: TypeAlias = int
 @dataclass(slots=True, frozen=True)
 class StateData:
     """
-    Датакласс для инициализации состояний пользователей,
-    контроля переходов и передачей данных пользователя между обработчиками
+Dataclass for initializing user states,
+     control of transitions and transfer of user data between handlers
 
     Attributes:
-        user (str): ID пользователя VK Teams (login@@company.ru)
-        state (str): Установить состояние пользователя в определенном обработчике
-        data (Mapping | None): Словарь с данными, необходимые для установки или передаче в др. обработчик
-        expire_session (Seconds): Через какое время удалится словарь с данными,
-                                  если пользователь не произвел никаких действий
-        additional (Mapping | None): Резервный ключ для добавления в него любых логических флагов и т.п.
+        user (str): User id VK Teams (login@@company.ru)
+        state (str): Set user state in a specific handler
+        data (Mapping | None): A dictionary with data necessary for
+        installation or transfer to another handler
+        expire_session (Seconds): After what time will the dictionary with data be deleted?
+                                   if the user has not performed any action
+        additional (Mapping | None): Reserve key for adding any logical flags, etc. to it.
 
-    После инициализации состояния через DictUserState.set(StateData()),
-    можно вызывать повторно для добавления данных.
-    Предыдущие данные, хранимые в ключах не удаляются.
+    After initializing the state via DictUserState.set(StateData()),
+     can be called repeatedly to add data.
+     Previous data stored in keys is not deleted.
     """
 
     user: str
@@ -38,18 +39,17 @@ class StateData:
 
 class UserState(Protocol):
     """
-    Абстрактный класс для создания цепочек состояний пользователей
+    Abstract class for creating user state chains
 
     Attributes:
-        message_timeout_to_users: Флаг отправки сообщения пользователю или в
-                                  группу о завершение сессии его состояний
+         message_timeout_to_users: Flag to send a message to a user or to
+                                   group about the end of the session of its states
 
-        session_timeout_seconds: Через какое время происходит проверка состояний пользователя
-        session_timeout_debug: Вывод logger состояния пользователей
-        keyboard_session_end: При установленном message_timeout_to_users,
-                              отправляется сообщение с клавиатурой
-                              (например переход в главное меню)
-
+         session_timeout_seconds: After what time the user states are checked
+         session_timeout_debug: User state logger output
+         keyboard_session_end: When message_timeout_to_users is set,
+                               a message is sent with the keyboard
+                               (for example, going to the main menu)
     """
 
     message_timeout_to_users = False
@@ -66,7 +66,7 @@ class UserState(Protocol):
 
 class DictUserState(UserState):
     """
-    Состояние пользователя и его данные хранятся в памяти
+    The user's state and data are stored in memory
     """
 
     _instance = None

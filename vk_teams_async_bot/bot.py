@@ -24,7 +24,7 @@ class EventsKeyMissingError(Exception):
 
 class Bot(object):
     """
-    Основное описание Bot API - https://teams.vk.com/botapi/
+    Basic description Bot API - https://teams.vk.com/botapi/
     """
 
     def __init__(
@@ -39,12 +39,12 @@ class Bot(object):
     ):
         """
 
-        :param bot_token: Токен бота
-        :param url: Сервер Bot API
-        :param base_path: Базовый путь
-        :param timeout_session: Таймаут aiohttp сессии
-        :param poll_time: Время поллига /events/get
-        :param last_event_id: Счётчик последнего события
+        :param bot_token: Bot token
+        :param url: Server Bot API
+        :param base_path: Base path
+        :param timeout_session: Timeout aiohttp session
+        :param poll_time: Time polling /events/get
+        :param last_event_id: Last event count
         """
         self.timeout_session = timeout_session
         self.bot_token = bot_token
@@ -61,7 +61,10 @@ class Bot(object):
 
     async def start_polling(self, count_request_retries: int = 2) -> None:
         """
-        Основной метод для обработки событий
+        Basic method to start polling
+
+        :param count_request_retries: number of request retries in case of
+               500+ code response from server VK Teams
         """
         while True:
             try:
@@ -78,8 +81,12 @@ class Bot(object):
 
     async def get_events(self, count_request_retries: int) -> list:
         """
-        Поллинг событий от Bot API
-        :return: Список одного или нескольких событий
+        Get events from VK Teams API
+
+        :param count_request_retries: number of request retries in case of
+               500+ code response from server VK Teams
+
+        :return: list of one or several events
         """
         response: dict = await self.session.get_request(
             endpoint="events/get",
@@ -101,7 +108,9 @@ class Bot(object):
 
     def set_last_event_id(self, event_id: int) -> None:
         """
-        Увеличение счётчика последнего события
+        Incrementing the last event counter
+
+        :param event_id: last event id
         """
         self.last_event_id = event_id
 
@@ -114,14 +123,17 @@ class Bot(object):
         count_request_retries: int = 2
     ) -> dict:
         """
-        Вызов данного метода должен использоваться в ответ на получение события [callbackQuery]
-        :param query_id: Идентификатор callback query полученного ботом
-        :param text: Текст нотификации, который будет отображен пользователю.
-                     В случае, если текст не задан – ничего не будет отображено.
+        Calling this method must be used in response to receiving the [callbackQuery] event
 
-        :param show_alert: Если выставить значение в true, вместо нотификации будет показан
-        :param url: URL, который будет открыт клиентским приложением
-        :param count_request_retries: количество повторных попыток запроса в случае ответа 500 от сервера
+        :param query_id: ID of the callback query received by the bot
+        :param text: Notification text that will be displayed to the user.
+                      If the text is not specified, nothing will be displayed.
+
+        :param show_alert: If set to true, an alert will be shown instead of a notification
+        :param url: URL that will be opened by the client application
+        :param count_request_retries: :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
         :return: Response 200 {"ok": true}
 
         """
@@ -136,8 +148,10 @@ class Bot(object):
 
     async def get_file_info(self, file_id: str) -> dict:
         """
-        Получение информации о файле на сервере
-        :param file_id: Id ранее загруженного файла на сервере
+        Get file information from VK Teams API
+
+        :param file_id: ID of a previously uploaded file on the server
+
         :return: Response 200
         {
               "type": "video",
@@ -163,6 +177,30 @@ class Bot(object):
         parse_mode: ParseMode | None = None,
         count_request_retries: int = 2
     ) -> dict:
+        """
+        Send a text message
+
+        :param chat_id: Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param text: Text message. You can mention a user by adding
+               their userId to the text in the following format @[userId].
+        :param reply_msg_id: ID of the quoted message. Cannot be passed
+               simultaneously with forwardChatId and forwardMsgId parameters.
+        :param forward_chat_id: Id of the chat from which the message will be forwarded.
+               Sent only with forwardMsgId. Cannot be passed with the replyMsgId parameter.
+        :param forward_msg_id: ID of the message being forwarded.
+               Sent only with forwardChatId. Cannot be passed with the replyMsgId parameter.
+        :param inline_keyboard_markup: This is an array of arrays with button descriptions.
+               The top level is an array of button strings, the lower level is an array
+               of buttons in a specific line
+        :param _format: Description of text formatting.
+        :param parse_mode: Mode for processing formatting from message text.
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
+        """
+
         return await self.session.get_request(
             endpoint="messages/sendText",
             chatId=chat_id,
@@ -218,6 +256,24 @@ class Bot(object):
         count_request_retries: int = 2
 
     ) -> dict:
+        """
+
+        :param chat_id: Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param msg_id: Message ID
+        :param text: Text message. You can mention a user by adding
+               their userId to the text in the following format @[userId].
+        :param inline_keyboard_markup: This is an array of arrays with button descriptions.
+               The top level is an array of button strings, the lower level is an array
+               of buttons in a specific line
+        :param _format: Description of text formatting.
+        :param parse_mode: Mode for processing formatting from message text.
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
+        """
+
         return await self.session.get_request(
             endpoint="messages/editText",
             chatId=chat_id,
@@ -248,8 +304,31 @@ class Bot(object):
 
     ) -> dict:
         """
-        Метод для отправки сообщения с файлом. Файл читается с пути если указан file_path,
-        в случае передачи объекта BytesIO указать только параметр bytes_object
+        Method for sending a message with a file. The file is read from the path
+        if file_path is specified, in case of passing a BytesIO object, specify
+        only the bytes_object parameter
+
+        :param chat_id: Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param bytes_io_object:
+        :param file_path: File path
+        :param filename: Filename with extension
+        :param caption: File signature
+        :param reply_msg_id: ID of the quoted message. Cannot be passed
+               simultaneously with forwardChatId and forwardMsgId parameters.
+        :param forward_chat_id: Id of the chat from which the message will be forwarded.
+               Sent only with forwardMsgId. Cannot be passed with the replyMsgId parameter.
+        :param forward_msg_id: ID of the message being forwarded.
+               Sent only with forwardChatId. Cannot be passed with the replyMsgId parameter.
+        :param inline_keyboard_markup: This is an array of arrays with button descriptions.
+               The top level is an array of button strings, the lower level is an array
+               of buttons in a specific line
+        :param _format: Description of text formatting.
+        :param parse_mode: Mode for processing formatting from message text.
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
         """
         data = FormData()
 
@@ -282,6 +361,17 @@ class Bot(object):
             msg_id: list[str],
             count_request_retries: int = 2
     ):
+        """
+        Delete a message
+
+        :param chat_id: Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param msg_id: Message ID
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
+        """
         return await self.session.get_request(
             endpoint="messages/deleteMessages",
             chatId=chat_id,
@@ -291,8 +381,9 @@ class Bot(object):
 
     async def self_get(self, count_request_retries: int = 2) -> dict:
         """
-        Метод можно использовать для проверки валидности токена.
-        :return: Response 200
+        Method for checking the validity of a token
+
+        :return: Response 200 {"ok": true}
 
         {
               "userId": "747432131",
@@ -325,6 +416,29 @@ class Bot(object):
         parse_mode: ParseMode | None = None,
         count_request_retries: int = 2,
     ) -> dict:
+        """
+        Send voice messages
+
+        :param chat_id:Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param file_path: File path
+        :param filename: Filename with extension
+        :param reply_msg_id: ID of the quoted message. Cannot be passed
+               simultaneously with forwardChatId and forwardMsgId parameters.
+        :param forward_chat_id: Id of the chat from which the message will be forwarded.
+               Sent only with forwardMsgId. Cannot be passed with the replyMsgId parameter.
+        :param forward_msg_id: ID of the message being forwarded.
+               Sent only with forwardChatId. Cannot be passed with the replyMsgId parameter.
+        :param inline_keyboard_markup: This is an array of arrays with button descriptions.
+               The top level is an array of button strings, the lower level is an array
+               of buttons in a specific line
+        :param _format: Description of text formatting.
+        :param parse_mode: Mode for processing formatting from message text.
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
+        """
 
         data = FormData()
         data.add_field("file", await async_read_file(file_path), filename=filename)
@@ -354,6 +468,29 @@ class Bot(object):
             inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
             count_request_retries: int = 2,
     ) -> dict:
+        """
+        Send voice messages by ID file from server.
+        If you want the client to display this file as a playable voice message,
+        it must be in aac, ogg, or m4a format.
+
+        :param chat_id: Unique nickname or chat id.
+               Id can be obtained from incoming events (chatId field).
+        :param file_id: File ID
+        :param reply_msg_id: ID of the quoted message. Cannot be passed
+               simultaneously with forwardChatId and forwardMsgId parameters.
+        :param forward_chat_id: Id of the chat from which the message will be forwarded.
+               Sent only with forwardMsgId. Cannot be passed with the replyMsgId parameter.
+        :param forward_msg_id: ID of the message being forwarded.
+               Sent only with forwardChatId. Cannot be passed with the replyMsgId parameter.
+        :param inline_keyboard_markup: This is an array of arrays with button descriptions.
+               The top level is an array of button strings, the lower level is an array
+               of buttons in a specific line
+
+        :param count_request_retries: number of request retries in case of
+               500 response from server VK Teams
+
+        :return: Response 200 {"ok": true}
+        """
 
         return await self.session.get_request(
             endpoint='messages/sendVoice',
@@ -367,4 +504,3 @@ class Bot(object):
             else None,
             _count_request_retries=count_request_retries
         )
-
