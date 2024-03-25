@@ -38,7 +38,6 @@ poetry add vk-teams-async-bot
 |--------|--------------------------------|--------|---------------------------|
 | GET    | /self/get                      | ✅      | bot.self_get              |
 | GET    | /messages/sendText             | ✅      | bot.send_text             |
-| GET    | /messages/sendTextWithDeeplink | ❌      |                           |
 | GET    | /messages/sendFile             | ✅      | bot.send_file_by_id       |
 | POST   | /messages/sendFile             | ✅      | bot.send_file             |
 | GET    | /messages/sendVoice            | ✅      | bot.send_voice            |
