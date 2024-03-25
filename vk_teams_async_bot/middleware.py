@@ -1,5 +1,5 @@
 class Middleware:
-    def __init__(self, middlewares: list = None):
+    def __init__(self, middlewares: list | None = None):
         self.middlewares = []
         self.middlewares = middlewares or []
 
@@ -7,4 +7,4 @@ class Middleware:
         self.middlewares.append(middleware)
 
     def handle(self, event, bot):
-        raise NotImplemented
+        raise NotImplementedError

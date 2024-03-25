@@ -55,7 +55,7 @@ class Event(object):
     def __init__(self, type_: EventType, data: dict):
         self.type = type_
         self.data = MappingProxyType(data)
-        self.text: str = data.get("text")
+        self.text: str | None = data.get("text")
         self.middleware_data: dict = {}
 
         if type_ != EventType.CALLBACK_QUERY:
@@ -92,5 +92,7 @@ class Event(object):
             self.callbackData = data["callbackData"]
 
     def __repr__(self):
-        return ("Event(type='{self.type}', data='{self.data}', "
-                "middleware_data='{self.middleware_data}')").format(self=self)
+        return (
+            "Event(type='{self.type}', data='{self.data}', "
+            "middleware_data='{self.middleware_data}')"
+        ).format(self=self)

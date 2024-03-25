@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 @dataclass(slots=True, frozen=True)
 class VKTeamsEventsResponse:
-    events: list[dict, ...]
+    events: list[dict]
     ok: bool
 
 
