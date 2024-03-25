@@ -170,8 +170,8 @@ async def download_file(file_url: str):
 def retry_on_500_or_higher_response(func):
     @functools.wraps(func)
     async def wrapper(self, *args, **kwargs):
-        delay_between_retries = kwargs.get('delay_between_retries', None)
-        established_retries = kwargs.get('_count_request_retries', 2)
+        delay_between_retries = kwargs.get("delay_between_retries", None)
+        established_retries = kwargs.get("_count_request_retries", 2)
         current_retries = established_retries
 
         while current_retries > 0:
@@ -197,4 +197,5 @@ def retry_on_500_or_higher_response(func):
                         f"The request will not be processed {kwargs}"
                     )
                     raise
+
     return wrapper

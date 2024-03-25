@@ -18,11 +18,13 @@ class BaseHandler(object):
 
         for key, value in signature.parameters.items():
             is_annotated = value.annotation.__dict__.get("__metadata__")
-            value = value.annotation.__dict__.get("__metadata__")[0] if is_annotated else value.annotation
+            value = (
+                value.annotation.__dict__.get("__metadata__")[0]
+                if is_annotated
+                else value.annotation
+            )
 
-            depend = [
-                depend for depend in bot.depends if depend == value
-            ]
+            depend = [depend for depend in bot.depends if depend == value]
             if depend:
                 result = value
                 depends.update({key: result})

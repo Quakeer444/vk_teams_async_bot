@@ -13,21 +13,21 @@ Seconds: TypeAlias = int
 @dataclass(slots=True, frozen=True)
 class StateData:
     """
-Dataclass for initializing user states,
-     control of transitions and transfer of user data between handlers
+    Dataclass for initializing user states,
+         control of transitions and transfer of user data between handlers
 
-    Attributes:
-        user (str): User id VK Teams (login@@company.ru)
-        state (str): Set user state in a specific handler
-        data (Mapping | None): A dictionary with data necessary for
-        installation or transfer to another handler
-        expire_session (Seconds): After what time will the dictionary with data be deleted?
-                                   if the user has not performed any action
-        additional (Mapping | None): Reserve key for adding any logical flags, etc. to it.
+        Attributes:
+            user (str): User id VK Teams (login@@company.ru)
+            state (str): Set user state in a specific handler
+            data (Mapping | None): A dictionary with data necessary for
+            installation or transfer to another handler
+            expire_session (Seconds): After what time will the dictionary with data be deleted?
+                                       if the user has not performed any action
+            additional (Mapping | None): Reserve key for adding any logical flags, etc. to it.
 
-    After initializing the state via DictUserState.set(StateData()),
-     can be called repeatedly to add data.
-     Previous data stored in keys is not deleted.
+        After initializing the state via DictUserState.set(StateData()),
+         can be called repeatedly to add data.
+         Previous data stored in keys is not deleted.
     """
 
     user: str
@@ -52,10 +52,10 @@ class UserState(Protocol):
                                (for example, going to the main menu)
     """
 
-    message_timeout_to_users = False
-    session_timeout_seconds = 60
-    session_timeout_debug = False
-    keyboard_session_end = lambda a: '[[{"text": "empty", "callbackData": "empty"}]]'
+    message_timeout_to_users: bool = False
+    session_timeout_seconds: int = 60
+    session_timeout_debug: bool = False
+    keyboard_session_end: Callable = lambda a: '[[{"text": "empty", "callbackData": "empty"}]]'
 
     async def set(self, state_data: StateData):
         raise NotImplementedError
@@ -80,10 +80,10 @@ class DictUserState(UserState):
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def get_user_all_data(self, user: str) -> dict:
+    def get_user_all_data(self, user: str) -> dict | None:
         return self.users_states.get(user)
 
-    def get_user_data(self, user: str) -> dict:
+    def get_user_data(self, user: str) -> dict | None:
         return self.users_states.get(user, {}).get("data")
 
     def update_user_data(self, user: str, data: dict) -> None:
@@ -94,31 +94,36 @@ class DictUserState(UserState):
         except KeyError as err:
             logger.error(err, exc_info=True)
 
-    def get_user_state(self, user: str) -> str:
+    def get_user_state(self, user: str) -> str | None:
         return self.users_states.get(user, {}).get("state")
 
     def update_user_state(self, user: str, state: str) -> None:
         try:
-            self.users_states.get(user)["state"] = state
-            self.set_new_expire_session(user)
+            if self.users_states.get(user):
+                self.users_states[user]["state"] = state
+                self.set_new_expire_session(user)
         except KeyError as err:
             logger.error(err, exc_info=True)
 
-    def get_user_additional(self, user: str) -> dict:
-        return self.users_states.get(user).get("additional")
+    def get_user_additional(self, user: str) -> dict | None:
+        if self.users_states.get(user):
+            return self.users_states["user"].get("additional")
+        return None
 
     def update_user_additional(self, user: str, additional: dict) -> None:
         try:
-            self.users_states.get(user)["additional"] = additional
-            self.set_new_expire_session(user)
+            if self.users_states.get(user):
+                self.users_states["user"]["additional"] = additional
+                self.set_new_expire_session(user)
         except KeyError as err:
             logger.error(err, exc_info=True)
 
     def set_new_expire_session(self, user: str, expire_session: Seconds = 15) -> None:
         try:
-            self.users_states.get(user)["expire_session"] = datetime.now() + timedelta(
-                seconds=expire_session
-            )
+            if self.users_states.get(user):
+                self.users_states["user"]["expire_session"] = datetime.now() + timedelta(
+                    seconds=expire_session
+                )
         except KeyError as err:
             logger.error(err, exc_info=True)
 

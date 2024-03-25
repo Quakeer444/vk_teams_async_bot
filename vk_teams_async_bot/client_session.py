@@ -23,10 +23,10 @@ class VKTeamsSession:
 
     def __init__(
         self,
-            base_url: str,
-            base_path: str,
-            bot_token: str,
-            timeout_session: Seconds,
+        base_url: str,
+        base_path: str,
+        bot_token: str,
+        timeout_session: Seconds,
     ):
         self.base_url = base_url
         self.base_path = base_path
@@ -35,7 +35,7 @@ class VKTeamsSession:
         self.delay_between_retries: None | int = None
 
     async def _create_session(self) -> None:
-        """Creating an aiohttp session """
+        """Creating an aiohttp session"""
         self._session = aiohttp.ClientSession(
             base_url=self.base_url,
             raise_for_status=True,
@@ -53,11 +53,8 @@ class VKTeamsSession:
 
     @retry_on_500_or_higher_response
     async def get_request(
-            self,
-            endpoint: str,
-            _count_request_retries: int,
-            **kwargs
-    ) -> dict:
+        self, endpoint: str, _count_request_retries: int, **kwargs
+    ) -> dict | None:
         """
         GET request
 
@@ -65,6 +62,7 @@ class VKTeamsSession:
         :param _count_request_retries: Number of request retries in case of
                500+ code response from server VK Teams
         :param kwargs: Request params
+
         :return:
         """
         await self._check_session()
@@ -73,15 +71,17 @@ class VKTeamsSession:
         [params.pop(key) for key, value in params.copy().items() if value is None]
 
         try:
-            response = await self._session.get(
-                url=f"{self.base_path}{endpoint}", params=params
-            )
-            response_text = await response.text()
-            if not response_text.count('{"events": [], "ok": true}'):
-                logger.debug(f"{response.status} {response_text}")
+            if self._session:
+                response = await self._session.get(
+                    url=f"{self.base_path}{endpoint}", params=params
+                )
+                response_text = await response.text()
+                if not response_text.count('{"events": [], "ok": true}'):
+                    logger.debug(f"{response.status} {response_text}")
 
-            response_json = await response.json()
-            return response_json
+                response_json = await response.json()
+                return response_json
+            return None
 
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:
@@ -91,15 +91,16 @@ class VKTeamsSession:
 
         except Exception as err:
             logger.error(f"Unknown error {err}", exc_info=True)
+            raise
 
     @retry_on_500_or_higher_response
     async def post_request(
-            self,
-            endpoint: str,
-            _count_request_retries: int,
-            body: FormData | dict,
-            **kwargs
-    ) -> dict:
+        self,
+        endpoint: str,
+        _count_request_retries: int,
+        body: FormData | dict,
+        **kwargs,
+    ) -> dict | None:
         """
         POST request
 
@@ -116,15 +117,17 @@ class VKTeamsSession:
         [params.pop(key) for key, value in params.copy().items() if value is None]
 
         try:
-            response = await self._session.post(
-                url=f"{self.base_path}{endpoint}", params=params, data=body
-            )
-            response_text = await response.text()
-            if not response_text.count('{"events": [], "ok": true}'):
-                logger.debug(f"{response.status} {response_text}")
+            if self._session:
+                response = await self._session.post(
+                    url=f"{self.base_path}{endpoint}", params=params, data=body
+                )
+                response_text = await response.text()
+                if not response_text.count('{"events": [], "ok": true}'):
+                    logger.debug(f"{response.status} {response_text}")
 
-            response_json = await response.json()
-            return response_json
+                response_json = await response.json()
+                return response_json
+            return None
 
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:
@@ -134,3 +137,4 @@ class VKTeamsSession:
 
         except Exception as err:
             logger.error(f"Unknown error {err}", exc_info=True)
+            raise
