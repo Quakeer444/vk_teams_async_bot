@@ -1,10 +1,16 @@
+import asyncio
+import functools
 import json
+import logging
 from typing import Dict, List, Mapping, Protocol, Union
 
 import aiofiles
 import aiohttp
 
 from .constants import StyleKeyboard, StyleType
+from .errors import ResponseStatus500orHigherError
+
+logger = logging.getLogger(__name__)
 
 
 class JsonSerializeAble(Protocol):
@@ -159,3 +165,36 @@ async def download_file(file_url: str):
         async with session.get(file_url) as response:
             if response.status == 200:
                 return await response.read()
+
+
+def retry_on_500_or_higher_response(func):
+    @functools.wraps(func)
+    async def wrapper(self, *args, **kwargs):
+        delay_between_retries = kwargs.get('delay_between_retries', None)
+        established_retries = kwargs.get('_count_request_retries', 2)
+        current_retries = established_retries
+
+        while current_retries > 0:
+            try:
+                if current_retries < established_retries:
+                    delay = delay_between_retries
+                    if delay:
+                        await asyncio.sleep(delay)
+                    logger.warning(
+                        f"{func.__name__=} attempt "
+                        f"{(established_retries + 1) - current_retries} "
+                        f"of {established_retries}- {kwargs}"
+                    )
+
+                return await func(self, *args, **kwargs)
+
+            except ResponseStatus500orHigherError as err:
+                logger.warning(f"{err=} {kwargs=}")
+                current_retries -= 1
+                if current_retries == 0:
+                    logger.error(
+                        f" {func.__name__=} ran out of attempts. "
+                        f"The request will not be processed {kwargs}"
+                    )
+                    raise
+    return wrapper

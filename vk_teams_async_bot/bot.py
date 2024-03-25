@@ -35,6 +35,7 @@ class Bot(object):
         timeout_session: Seconds = 35,
         poll_time: Seconds = 20,
         last_event_id: int = 0,
+        count_request_retries: int = 3
     ):
         """
 
@@ -47,21 +48,24 @@ class Bot(object):
         """
         self.timeout_session = timeout_session
         self.bot_token = bot_token
-
         self.last_event_id = last_event_id
         self.poll_time = poll_time
-        self.session = VKTeamsSession(url, base_path, bot_token, timeout_session)
+
+        self.session = VKTeamsSession(
+            url, base_path, bot_token, timeout_session
+        )
+
         self.dispatcher = Dispatcher(self)
         self.user_state = DictUserState(self.send_text)
         self.depends = []
 
-    async def start_polling(self) -> None:
+    async def start_polling(self, count_request_retries: int = 2) -> None:
         """
         Основной метод для обработки событий
         """
         while True:
             try:
-                events: list = await self.get_events()
+                events: list = await self.get_events(count_request_retries)
                 if events:
                     for event in events:
                         event = Event(
@@ -72,7 +76,7 @@ class Bot(object):
             except Exception as err:
                 logger.error(err, exc_info=True)
 
-    async def get_events(self) -> list:
+    async def get_events(self, count_request_retries: int) -> list:
         """
         Поллинг событий от Bot API
         :return: Список одного или нескольких событий
@@ -81,6 +85,7 @@ class Bot(object):
             endpoint="events/get",
             lastEventId=self.last_event_id,
             pollTime=self.poll_time,
+            _count_request_retries=count_request_retries,
         )
         if response:
             try:
@@ -106,6 +111,7 @@ class Bot(object):
         text: str = "",
         show_alert: bool = False,
         url: str = None,
+        count_request_retries: int = 2
     ) -> dict:
         """
         Вызов данного метода должен использоваться в ответ на получение события [callbackQuery]
@@ -115,6 +121,7 @@ class Bot(object):
 
         :param show_alert: Если выставить значение в true, вместо нотификации будет показан
         :param url: URL, который будет открыт клиентским приложением
+        :param count_request_retries: количество повторных попыток запроса в случае ответа 500 от сервера
         :return: Response 200 {"ok": true}
 
         """
@@ -124,6 +131,7 @@ class Bot(object):
             text=text,
             showAlert="true" if show_alert else "false",
             url=url,
+            _count_request_retries=count_request_retries,
         )
 
     async def get_file_info(self, file_id: str) -> dict:
@@ -139,7 +147,7 @@ class Bot(object):
         }
         """
         response = await self.session.get_request(
-            endpoint="files/getInfo", fileId=file_id
+            endpoint="files/getInfo", fileId=file_id, _count_request_retries=2
         )
         return response
 
@@ -153,6 +161,7 @@ class Bot(object):
         inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
         _format: Format | list[dict] | str | None = None,
         parse_mode: ParseMode | None = None,
+        count_request_retries: int = 2
     ) -> dict:
         return await self.session.get_request(
             endpoint="messages/sendText",
@@ -166,6 +175,7 @@ class Bot(object):
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
+            _count_request_retries=count_request_retries
         )
 
     async def send_file_by_id(
@@ -179,6 +189,7 @@ class Bot(object):
         inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
         _format: Format | list[dict] | str | None = None,
         parse_mode: ParseMode | None = None,
+        count_request_retries: int = 2
     ) -> dict:
         return await self.session.get_request(
             endpoint="messages/sendFile",
@@ -193,6 +204,7 @@ class Bot(object):
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
+            _count_request_retries=count_request_retries
         )
 
     async def edit_text(
@@ -203,6 +215,8 @@ class Bot(object):
         inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
         _format: Format | list[dict] | str | None = None,
         parse_mode: ParseMode | None = None,
+        count_request_retries: int = 2
+
     ) -> dict:
         return await self.session.get_request(
             endpoint="messages/editText",
@@ -214,6 +228,7 @@ class Bot(object):
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
+            _count_request_retries=count_request_retries
         )
 
     async def send_file(
@@ -229,6 +244,8 @@ class Bot(object):
         inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
         _format: Format | list[dict] | str | None = None,
         parse_mode: ParseMode | None = None,
+        count_request_retries: int = 2
+
     ) -> dict:
         """
         Метод для отправки сообщения с файлом. Файл читается с пути если указан file_path,
@@ -256,14 +273,23 @@ class Bot(object):
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parse_mode=parse_mode,
+            _count_request_retries=count_request_retries
         )
 
-    async def delete_msg(self, chat_id: str, msg_id: list[str]):
+    async def delete_msg(
+            self,
+            chat_id: str,
+            msg_id: list[str],
+            count_request_retries: int = 2
+    ):
         return await self.session.get_request(
-            endpoint="messages/deleteMessages", chatId=chat_id, msgId=msg_id
+            endpoint="messages/deleteMessages",
+            chatId=chat_id,
+            msgId=msg_id,
+            _count_request_retries=count_request_retries
         )
 
-    async def self_get(self) -> dict:
+    async def self_get(self, count_request_retries: int = 2) -> dict:
         """
         Метод можно использовать для проверки валидности токена.
         :return: Response 200
@@ -281,7 +307,10 @@ class Bot(object):
               "ok": true
         }
         """
-        return await self.session.get_request("self/get")
+        return await self.session.get_request(
+            "self/get",
+            _count_request_retries=count_request_retries
+        )
 
     async def send_voice(
         self,
@@ -293,7 +322,8 @@ class Bot(object):
         forward_msg_id: list[int] | None = None,
         inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
         _format: Format | list[dict] | str | None = None,
-        parse_mode: ParseMode | None = None
+        parse_mode: ParseMode | None = None,
+        count_request_retries: int = 2,
     ) -> dict:
 
         data = FormData()
@@ -311,8 +341,8 @@ class Bot(object):
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
             parseMode=parse_mode,
+            _count_request_retries=count_request_retries
         )
-
 
     async def send_voice_by_id(
             self,
@@ -322,6 +352,7 @@ class Bot(object):
             forward_chat_id: list[str] | None = None,
             forward_msg_id: list[int] | None = None,
             inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+            count_request_retries: int = 2,
     ) -> dict:
 
         return await self.session.get_request(
@@ -334,5 +365,6 @@ class Bot(object):
             inlineKeyboardMarkup=str(inline_keyboard_markup)
             if inline_keyboard_markup is not None
             else None,
+            _count_request_retries=count_request_retries
         )
 
