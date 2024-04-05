@@ -10,8 +10,9 @@ from vk_teams_async_bot.events import Event
 from vk_teams_async_bot.filter import Filter
 from vk_teams_async_bot.handler import BotButtonCommandHandler, CommandHandler
 from vk_teams_async_bot.helpers import InlineKeyboardMarkup, KeyboardButton
+from local_.config import env
 
-app = Bot(bot_token="TOKEN", url="URL")
+app = Bot(bot_token=env.TEST_BOT_TOKEN.get_secret_value())
 
 
 def keyboad_start_menu():
