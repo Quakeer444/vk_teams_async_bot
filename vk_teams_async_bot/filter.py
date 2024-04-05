@@ -126,7 +126,15 @@ class RegexpFilter(MessageFilter):
 
     def filter(self, event):
         return super(RegexpFilter, self).filter(event) and self.pattern.search(
-            event.data["text"].strip()
+            event.data.get("text", "").strip()
+        )
+
+
+class ForwardFilter(MessageFilter):
+    def filter(self, event):
+        return (
+            'parts' in event.data and
+            any(p['type'] == Parts.FORWARD.value for p in event.data['parts'])
         )
 
 
