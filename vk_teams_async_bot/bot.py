@@ -3,6 +3,7 @@ import logging
 from io import BytesIO
 from typing import TypeAlias
 
+import aiohttp
 from aiohttp import FormData
 
 from .client_session import VKTeamsSession
@@ -353,6 +354,20 @@ class Bot(object):
             parse_mode=parse_mode,
             _count_request_retries=count_request_retries,
         )
+
+    @staticmethod
+    async def download_file(file_url: str) -> bytes:
+        """
+        Method for downloading a file
+
+        :param file_url: The URL of the file to download.
+        :return: - bytes: The content of the file as bytes
+                 - None: If the response status code is not 200.
+        """
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(10)) as session:
+            async with session.get(file_url) as response:
+                if response.status == 200:
+                    return await response.read()
 
     async def delete_msg(
         self, chat_id: str, msg_id: list[str], count_request_retries: int = 2
