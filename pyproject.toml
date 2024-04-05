@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "vk-teams-async-bot"
-version = "0.1.5"
+version = "0.2.0"
 description = ""
 authors = ["Александр Смирнов <alexsmi4444@gmail.com>"]
 readme = "README.md"
