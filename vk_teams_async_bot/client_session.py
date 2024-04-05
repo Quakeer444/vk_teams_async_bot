@@ -75,12 +75,17 @@ class VKTeamsSession:
                 response = await self._session.get(
                     url=f"{self.base_path}{endpoint}", params=params
                 )
-                response_text = await response.text()
-                if not response_text.count('{"events": [], "ok": true}'):
-                    logger.debug(f"{response.status} {response_text}")
 
                 response_json = await response.json()
+
+                match response_json:
+                    case {"events": [], "ok": True}:
+                        pass
+                    case _:
+                        logger.info(f"{response.status} {response_json}")
+
                 return response_json
+
             return None
 
         except aiohttp.ClientResponseError as err:
@@ -121,12 +126,17 @@ class VKTeamsSession:
                 response = await self._session.post(
                     url=f"{self.base_path}{endpoint}", params=params, data=body
                 )
-                response_text = await response.text()
-                if not response_text.count('{"events": [], "ok": true}'):
-                    logger.debug(f"{response.status} {response_text}")
 
                 response_json = await response.json()
+
+                match response_json:
+                    case {"events": [], "ok": True}:
+                        pass
+                    case _:
+                        logger.info(f"{response.status} {response_json}")
+
                 return response_json
+
             return None
 
         except aiohttp.ClientResponseError as err:
