@@ -29,6 +29,11 @@ class AndFilter(CompositeFilter):
         return self.filter_1(event) and self.filter_2(event)
 
 
+class OrFilter(CompositeFilter):
+    def filter(self, event):
+        return self.filter_1(event) or self.filter_2(event)
+
+
 class MessageFilter(FilterBase):
     def filter(self, event: Event):
         return bool(event.type == EventType.NEW_MESSAGE)
@@ -158,3 +163,4 @@ class Filter(object):
     state_regex = StateUserRegexFilter
     reply = ReplyFilter()
     tag = TagFilter
+    forward = ForwardFilter()
