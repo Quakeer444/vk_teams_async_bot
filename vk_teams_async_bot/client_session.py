@@ -88,6 +88,9 @@ class VKTeamsSession:
 
             return None
 
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout error {endpoint=}")
+
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:
                 raise ResponseStatus500orHigherError(err)
@@ -138,6 +141,9 @@ class VKTeamsSession:
                 return response_json
 
             return None
+
+        except asyncio.TimeoutError:
+            logger.error(f"Timeout error {endpoint=}")
 
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:

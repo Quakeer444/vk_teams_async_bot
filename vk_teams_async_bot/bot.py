@@ -32,8 +32,8 @@ class Bot(object):
         bot_token: str,
         url: str = "https://api.internal.myteam.mail.ru",
         base_path="/bot/v1/",
-        timeout_session: Seconds = 25,
-        poll_time: Seconds = 20,
+        timeout_session: Seconds = 30,
+        poll_time: Seconds = 15,
         last_event_id: int = 0,
     ):
         """
