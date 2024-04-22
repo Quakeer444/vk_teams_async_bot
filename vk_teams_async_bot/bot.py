@@ -327,7 +327,7 @@ class Bot(object):
 
         :return: Response 200 {"ok": true}
         """
-        data = FormData()
+        data = FormData(quote_fields=False)
 
         if file_path:
             data.add_field("file", await async_read_file(file_path), filename=filename)
@@ -450,7 +450,7 @@ class Bot(object):
         :return: Response 200 {"ok": true}
         """
 
-        data = FormData()
+        data = FormData(quote_fields=False)
         data.add_field("file", await async_read_file(file_path), filename=filename)
 
         return await self.session.post_request(
