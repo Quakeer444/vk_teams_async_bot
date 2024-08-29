@@ -135,6 +135,66 @@ class RegexpFilter(MessageFilter):
         )
 
 
+class RegexpTextPartsFilter(MessageFilter):
+    def __init__(self, pattern):
+        super(RegexpTextPartsFilter, self).__init__()
+        self.pattern = re.compile(pattern)
+
+    def filter(self, event):
+        if not super(RegexpTextPartsFilter, self).filter(event):
+            return False
+
+        for part in event.data.get('parts', []):
+            try:
+                text = part["payload"]["message"]["text"]
+                if self.pattern.search(text):
+                    return True
+            except KeyError:
+                continue
+
+        return False
+
+
+class MessageTextPartFromNickFilter(MessageFilter):
+    def __init__(self, nick: str):
+        super(MessageTextPartFromNickFilter, self).__init__()
+        self.nick = nick
+
+    def _filter_all_text_parts_from_nick(self, event):
+
+        all_text_parts_from_nick = set()
+        for part in event.data.get('parts', []):
+            try:
+                nick = part["payload"]["message"]["from"]["nick"]
+                all_text_parts_from_nick.add(nick == self.nick)
+            except KeyError:
+                continue
+
+        return all(all_text_parts_from_nick)
+
+    def _filter_any_text_parts_from_nick(self, event):
+        for part in event.data.get('parts', []):
+            try:
+                nick = part["payload"]["message"]["from"]["nick"]
+                if nick == self.nick:
+                    return True
+            except KeyError:
+                continue
+
+        return False
+
+    def filter(self, event, all_text_parts_from_nick=False):
+        if not super(MessageTextPartFromNickFilter, self).filter(event):
+            return False
+
+        if all_text_parts_from_nick:
+            is_filter = self._filter_all_text_parts_from_nick(event)
+        else:
+            is_filter = self._filter_any_text_parts_from_nick(event)
+
+        return False
+
+
 class ForwardFilter(MessageFilter):
     def filter(self, event):
         return (
@@ -155,6 +215,8 @@ class TagFilter(MessageFilter):
 class Filter(object):
     messagetext = MessageFilter
     regexp = RegexpFilter
+    regexp_text_parts = RegexpTextPartsFilter
+    message_text_from_nick = MessageTextPartFromNickFilter
     callback_data = CallbackDataFilter
     callback_data_regexp = CallbackDataRegexpFilter
     file = FileFilter()
