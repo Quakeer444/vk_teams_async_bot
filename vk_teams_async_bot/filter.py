@@ -192,7 +192,7 @@ class MessageTextPartFromNickFilter(MessageFilter):
         else:
             is_filter = self._filter_any_text_parts_from_nick(event)
 
-        return False
+        return is_filter
 
 
 class ForwardFilter(MessageFilter):
