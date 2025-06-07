@@ -82,6 +82,19 @@ class InlineKeyboardMarkup(JsonSerializeAble):
     def __str__(self) -> str:
         return self.to_json()
 
+    def __add__(self, other: Union['InlineKeyboardMarkup', KeyboardButton]) -> 'InlineKeyboardMarkup':
+        if isinstance(other, KeyboardButton):
+            if not self.keyboard or len(self.keyboard[-1]) >= self.buttons_in_row:
+                self.keyboard.append([])
+            self.keyboard[-1].append(other.to_dic())
+        elif isinstance(other, InlineKeyboardMarkup):
+            for row in other.keyboard:
+                self.keyboard.append(row)
+        else:
+            raise TypeError(f"Cannot add {type(other)} to InlineKeyboardMarkup.")
+        return self
+
+
 
 class Style(DictionaryAble, JsonSerializeAble):
     __slots__ = "ranges"
