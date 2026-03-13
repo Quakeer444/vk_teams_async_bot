@@ -213,3 +213,6 @@ ENV/
 
 # mkdocs documentation
 /site
+/docs
+CL*
+.playwright*

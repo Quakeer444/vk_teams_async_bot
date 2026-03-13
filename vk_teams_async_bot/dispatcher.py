@@ -1,4 +1,8 @@
+import logging
+
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from .bot import Bot
@@ -13,7 +17,13 @@ class Dispatcher(object):
 
     async def processed_event(self, event: "Event"):
         for middleware in self.middlewares:
-            event = await middleware.handle(event, self.bot)
+            try:
+                event = await middleware.handle(event, self.bot)
+            except PermissionError:
+                return
+            except Exception as err:
+                logger.error(f"Middleware error: {err}", exc_info=True)
+                continue
 
         for handler in self.handlers:
             if handler.check(event):

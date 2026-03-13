@@ -1,4 +1,5 @@
 import inspect
+import typing
 
 from .events import Event, EventType
 from .filter import Filter
@@ -17,12 +18,10 @@ class BaseHandler(object):
         depends = {}
 
         for key, value in signature.parameters.items():
-            is_annotated = value.annotation.__dict__.get("__metadata__")
-            value = (
-                value.annotation.__dict__.get("__metadata__")[0]
-                if is_annotated
-                else value.annotation
-            )
+            if typing.get_origin(value.annotation) is typing.Annotated:
+                value = typing.get_args(value.annotation)[1]
+            else:
+                value = value.annotation
 
             depend = [depend for depend in bot.depends if depend == value]
             if depend:
@@ -34,17 +33,23 @@ class BaseHandler(object):
         handle_kwargs = await self.check_signature(bot)
 
         objects = {}
-        for item_name, item_func in handle_kwargs.items():
-            if inspect.isasyncgenfunction(item_func):
-                item = item_func()
-                objects[item_name] = await anext(item)
-                continue
-            if inspect.iscoroutinefunction(item_func):
-                objects[item_name] = await item_func()
-                continue
-            if inspect.isfunction(item_func):
-                objects[item_name] = item_func()
-        await self.callback(event, bot, **objects)
+        async_generators = []
+        try:
+            for item_name, item_func in handle_kwargs.items():
+                if inspect.isasyncgenfunction(item_func):
+                    item = item_func()
+                    async_generators.append(item)
+                    objects[item_name] = await anext(item)
+                    continue
+                if inspect.iscoroutinefunction(item_func):
+                    objects[item_name] = await item_func()
+                    continue
+                if inspect.isfunction(item_func):
+                    objects[item_name] = item_func()
+            await self.callback(event, bot, **objects)
+        finally:
+            for gen in async_generators:
+                await gen.aclose()
 
 
 class MessageHandler(BaseHandler):

@@ -55,6 +55,12 @@ class Bot(object):
         self.dispatcher = Dispatcher(self)
         self.user_state = DictUserState(self.send_text)
         self.depends: list = []
+        self._background_tasks: set[asyncio.Task] = set()
+
+    def _task_done(self, task: asyncio.Task) -> None:
+        self._background_tasks.discard(task)
+        if not task.cancelled() and task.exception():
+            logger.error("Unhandled exception in background task", exc_info=task.exception())
 
     async def start_polling(self, count_request_retries: int = 2) -> None:
         """
@@ -71,7 +77,9 @@ class Bot(object):
                         event = Event(
                             type_=EventType(event["type"]), data=event["payload"]
                         )
-                        asyncio.create_task(self.dispatcher.processed_event(event))
+                        task = asyncio.create_task(self.dispatcher.processed_event(event))
+                        self._background_tasks.add(task)
+                        task.add_done_callback(self._task_done)
 
             except Exception as err:
                 logger.error(err, exc_info=True)
@@ -93,7 +101,7 @@ class Bot(object):
         )
         if response:
             try:
-                if not response.__contains__("events"):
+                if "events" not in response:
                     raise EventsKeyMissingError
 
                 if response.get("events"):
@@ -347,16 +355,15 @@ class Bot(object):
             replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
             forwardMsgId=forward_msg_id,
-            inline_keyboard_markup=str(inline_keyboard_markup)
+            inlineKeyboardMarkup=str(inline_keyboard_markup)
             if inline_keyboard_markup is not None
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),
-            parse_mode=parse_mode,
+            parseMode=parse_mode,
             _count_request_retries=count_request_retries,
         )
 
-    @staticmethod
-    async def download_file(file_url: str) -> bytes:
+    async def download_file(self, file_url: str) -> bytes | None:
         """
         Method for downloading a file
 
@@ -364,10 +371,16 @@ class Bot(object):
         :return: - bytes: The content of the file as bytes
                  - None: If the response status code is not 200.
         """
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(10)) as session:
-            async with session.get(file_url) as response:
-                if response.status == 200:
-                    return await response.read()
+        await self.session._check_session()
+        if self.session._session:
+            try:
+                async with self.session._session.get(file_url) as response:
+                    if response.status == 200:
+                        return await response.read()
+                    return None
+            except aiohttp.ClientResponseError:
+                return None
+        return None
 
     async def delete_msg(
         self, chat_id: str, msg_id: list[str], count_request_retries: int = 2
@@ -460,7 +473,7 @@ class Bot(object):
             replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
             forwardMsgId=forward_msg_id,
-            inline_keyboard_markup=str(inline_keyboard_markup)
+            inlineKeyboardMarkup=str(inline_keyboard_markup)
             if inline_keyboard_markup is not None
             else None,
             format=_format if isinstance(_format, str) else format_to_json(_format),

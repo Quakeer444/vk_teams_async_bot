@@ -2,10 +2,9 @@ import asyncio
 import functools
 import json
 import logging
-from typing import Dict, List, Mapping, Protocol, Union
+from typing import Mapping, Protocol
 
 import aiofiles
-import aiohttp
 
 from .constants import StyleKeyboard, StyleType
 from .errors import ResponseStatus500orHigherError
@@ -82,7 +81,7 @@ class InlineKeyboardMarkup(JsonSerializeAble):
     def __str__(self) -> str:
         return self.to_json()
 
-    def __add__(self, other: Union['InlineKeyboardMarkup', KeyboardButton]) -> 'InlineKeyboardMarkup':
+    def __add__(self, other: 'InlineKeyboardMarkup | KeyboardButton') -> 'InlineKeyboardMarkup':
         if isinstance(other, KeyboardButton):
             if not self.keyboard or len(self.keyboard[-1]) >= self.buttons_in_row:
                 self.keyboard.append([])
@@ -155,8 +154,8 @@ def format_to_json(format_):
 
 
 def keyboard_to_json(
-    keyboard_markup: Union[List[List[Dict]], InlineKeyboardMarkup, str, None]
-) -> Union[str, None]:
+    keyboard_markup: list[list[dict]] | InlineKeyboardMarkup | str | None,
+) -> str | None:
     if isinstance(keyboard_markup, InlineKeyboardMarkup):
         return keyboard_markup.to_json()
     elif isinstance(keyboard_markup, list):
@@ -171,13 +170,6 @@ async def async_read_file(file_path: str) -> bytes:
     async with aiofiles.open(file_path, "rb") as file:
         content = await file.read()
     return content
-
-
-async def download_file(file_url: str):
-    async with aiohttp.ClientSession() as session:
-        async with session.get(file_url) as response:
-            if response.status == 200:
-                return await response.read()
 
 
 def retry_on_500_or_higher_response(func):

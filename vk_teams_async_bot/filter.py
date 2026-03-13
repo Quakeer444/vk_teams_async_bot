@@ -156,9 +156,10 @@ class RegexpTextPartsFilter(MessageFilter):
 
 
 class MessageTextPartFromNickFilter(MessageFilter):
-    def __init__(self, nick: str):
+    def __init__(self, nick: str, all_text_parts_from_nick: bool = False):
         super(MessageTextPartFromNickFilter, self).__init__()
         self.nick = nick
+        self.all_text_parts_from_nick = all_text_parts_from_nick
 
     def _filter_all_text_parts_from_nick(self, event):
 
@@ -183,21 +184,20 @@ class MessageTextPartFromNickFilter(MessageFilter):
 
         return False
 
-    def filter(self, event, all_text_parts_from_nick=False):
+    def filter(self, event):
         if not super(MessageTextPartFromNickFilter, self).filter(event):
             return False
 
-        if all_text_parts_from_nick:
-            is_filter = self._filter_all_text_parts_from_nick(event)
+        if self.all_text_parts_from_nick:
+            return self._filter_all_text_parts_from_nick(event)
         else:
-            is_filter = self._filter_any_text_parts_from_nick(event)
-
-        return is_filter
+            return self._filter_any_text_parts_from_nick(event)
 
 
 class ForwardFilter(MessageFilter):
     def filter(self, event):
         return (
+            super(ForwardFilter, self).filter(event) and
             'parts' in event.data and
             any(p['type'] == Parts.FORWARD.value for p in event.data['parts'])
         )

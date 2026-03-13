@@ -1,6 +1,5 @@
 from enum import Enum, unique
 from types import MappingProxyType
-from typing import Dict, List, Optional
 
 
 @unique
@@ -21,13 +20,13 @@ class EventType(Enum):
 class ChatInfo(object):
     __slots__ = ("chatId", "type", "title")
 
-    def __init__(self, chatId: str, type: str, title: Optional[str] = None):
+    def __init__(self, chatId: str, type: str, title: str | None = None):
         self.chatId: str = chatId
         self.type: str = type
         self.title = title
 
     def __repr__(self):
-        return "{self.get_title}({self.chatId})".format(self=self)
+        return "{self.title}({self.chatId})".format(self=self)
 
 
 class UserInfo(object):
@@ -36,9 +35,9 @@ class UserInfo(object):
     def __init__(
         self,
         userId: str,
-        firstName: Optional[str] = None,
-        lastName: Optional[str] = None,
-        nick: Optional[str] = None,
+        firstName: str | None = None,
+        lastName: str | None = None,
+        nick: str | None = None,
     ):
         self.userId = userId
         self.firstName = firstName
@@ -72,7 +71,7 @@ class Event(object):
             if data.get("from"):
                 self.from_: UserInfo = UserInfo(**data["from"])
 
-            self._format: Dict[str, List[Dict[str, int]]] = data.get("format")
+            self._format: dict[str, list[dict[str, int]]] = data.get("format")
             self.timestamp: int = data.get("timestamp")
             self.msgId: str = data.get("msgId")
 
@@ -80,10 +79,13 @@ class Event(object):
             self.timestamp: int = data.get("timestamp")
             self.msgId: str = data.get("msgId")
 
-        elif type_ in [EventType.NEW_CHAT_MEMBERS, EventType.LEFT_CHAT_MEMBERS]:
+        elif type_ == EventType.NEW_CHAT_MEMBERS:
             self.newMembers = [UserInfo(**user) for user in data.get("newMembers", [])]
             if data.get("addedBy"):
                 self.addedBy = UserInfo(**data["addedBy"])
+
+        elif type_ == EventType.LEFT_CHAT_MEMBERS:
+            self.leftMembers = [UserInfo(**user) for user in data.get("leftMembers", [])]
 
         else:
             self.queryId = data["queryId"]

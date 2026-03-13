@@ -70,10 +70,11 @@ class DictUserState(UserState):
     """
 
     _instance = None
-    users_states: dict[str, dict[str, Any]] = dict()
 
     def __init__(self, bot_send_text: Callable):
         self.bot_send_text = bot_send_text
+        if not hasattr(self, 'users_states'):
+            self.users_states: dict[str, dict[str, Any]] = {}
 
     def __new__(cls, *args, **kwargs):
         if not cls._instance:

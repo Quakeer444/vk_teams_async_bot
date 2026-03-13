@@ -27,11 +27,13 @@ class VKTeamsSession:
         base_path: str,
         bot_token: str,
         timeout_session: Seconds,
+        ssl: bool | None = None,
     ):
         self.base_url = base_url
         self.base_path = base_path
         self.bot_token = bot_token
         self.timeout_session = timeout_session
+        self.ssl = ssl
         self.delay_between_retries: None | int = None
 
     async def _create_session(self) -> None:
@@ -40,8 +42,7 @@ class VKTeamsSession:
             base_url=self.base_url,
             raise_for_status=True,
             timeout=aiohttp.ClientTimeout(total=self.timeout_session),
-            loop=asyncio.get_event_loop(),
-            connector=aiohttp.TCPConnector(ssl=False),
+            connector=aiohttp.TCPConnector(ssl=self.ssl),
         )
         logger.debug(f"The session was created successfully. {self._session}")
 
@@ -67,8 +68,8 @@ class VKTeamsSession:
         """
         await self._check_session()
 
-        params = {"token": self.bot_token, **kwargs}
-        [params.pop(key) for key, value in params.copy().items() if value is None]
+        kwargs.pop("_count_request_retries", None)
+        params = {k: v for k, v in {"token": self.bot_token, **kwargs}.items() if v is not None}
 
         try:
             if self._session:
@@ -90,6 +91,7 @@ class VKTeamsSession:
 
         except asyncio.TimeoutError:
             logger.error(f"Timeout error {endpoint=}")
+            raise
 
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:
@@ -121,8 +123,8 @@ class VKTeamsSession:
         """
         await self._check_session()
 
-        params = {"token": self.bot_token, **kwargs}
-        [params.pop(key) for key, value in params.copy().items() if value is None]
+        kwargs.pop("_count_request_retries", None)
+        params = {k: v for k, v in {"token": self.bot_token, **kwargs}.items() if v is not None}
 
         try:
             if self._session:
@@ -144,6 +146,7 @@ class VKTeamsSession:
 
         except asyncio.TimeoutError:
             logger.error(f"Timeout error {endpoint=}")
+            raise
 
         except aiohttp.ClientResponseError as err:
             if err.status >= 500:
