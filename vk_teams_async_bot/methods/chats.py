@@ -3,8 +3,6 @@
 from __future__ import annotations
 
 import json
-from typing import Any
-
 from aiohttp import FormData
 from pydantic import TypeAdapter
 
@@ -157,7 +155,7 @@ class ChatMethods(BaseMethods):
     async def get_chat_info(
         self,
         chat_id: str,
-    ) -> Any:
+    ) -> ChatInfoResponse:
         """Get chat info (discriminated by ``type`` field).
 
         Returns ``ChatInfoPrivate``, ``ChatInfoGroup``, or
