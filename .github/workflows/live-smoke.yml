@@ -1,0 +1,35 @@
+name: Live Smoke Tests
+
+on:
+  workflow_dispatch:
+
+jobs:
+  live-smoke:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          version: latest
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+
+      - name: Install dependencies
+        run: poetry install --with dev
+
+      - name: Run live smoke tests
+        env:
+          VK_TEAMS_BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          VK_TEAMS_BASE_URL: ${{ secrets.VK_TEAMS_BASE_URL }}
+          VK_TEAMS_TEST_USER_ID: ${{ secrets.TEST_USER_ID }}
+          VK_TEAMS_TEST_GROUP_ID: ${{ secrets.TEST_GROUP_ID }}
+        run: poetry run pytest tests/live/ -v -m live --tb=short
