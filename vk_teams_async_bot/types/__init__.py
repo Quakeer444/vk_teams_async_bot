@@ -32,6 +32,35 @@ from .response import (
     UserIdItem,
     UsersResponse,
 )
+from .event import (
+    BaseEvent,
+    CallbackQueryEvent,
+    DeletedMessageEvent,
+    EditedMessageEvent,
+    Event,
+    LeftChatMembersEvent,
+    NewChatMembersEvent,
+    NewMessageEvent,
+    PinnedMessageEvent,
+    RawUnknownEvent,
+    UnpinnedMessageEvent,
+    parse_event,
+)
+from .message import (
+    FilePart,
+    FilePartPayload,
+    ForwardPart,
+    ForwardPartPayload,
+    MentionPart,
+    MessagePart,
+    NestedMessage,
+    ReplyPart,
+    ReplyPartPayload,
+    StickerPart,
+    StickerPartPayload,
+    VoicePart,
+    parse_parts,
+)
 from .user import BotInfo, PhotoUrl, User, UserAdmin
 
 __all__ = [
@@ -70,4 +99,31 @@ __all__ = [
     "UserIdItem",
     "UsersResponse",
     "ErrorResponse",
+    # message parts
+    "NestedMessage",
+    "FilePart",
+    "FilePartPayload",
+    "StickerPart",
+    "StickerPartPayload",
+    "MentionPart",
+    "VoicePart",
+    "ForwardPart",
+    "ForwardPartPayload",
+    "ReplyPart",
+    "ReplyPartPayload",
+    "MessagePart",
+    "parse_parts",
+    # events
+    "BaseEvent",
+    "NewMessageEvent",
+    "EditedMessageEvent",
+    "DeletedMessageEvent",
+    "PinnedMessageEvent",
+    "UnpinnedMessageEvent",
+    "NewChatMembersEvent",
+    "LeftChatMembersEvent",
+    "CallbackQueryEvent",
+    "RawUnknownEvent",
+    "Event",
+    "parse_event",
 ]

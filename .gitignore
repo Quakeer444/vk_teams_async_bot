@@ -216,4 +216,5 @@ ENV/
 /site
 /docs
 CL*
+!vk_teams_async_bot/client/
 .playwright*
