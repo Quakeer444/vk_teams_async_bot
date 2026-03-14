@@ -3,246 +3,175 @@
 [![Repo size](https://img.shields.io/github/repo-size/Quakeer444/vk_teams_async_bot)](https://pypi.org/project/vk-teams-async-bot/)
 
 
-# **Table of Contents**
+# vk-teams-async-bot
 
-- [Introduction](#introduction)
-- [Installing](#installing)
-- [Implemented methods in this library](#implemented-methods-in-this-library)
+Async Python library for building VK Teams bots via VK Teams Bot API.
+
+API docs: https://teams.vk.com/botapi/
+
+[Metabot](https://teams.vk.com/profile/70001) -- for creating a bot and getting a token.
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quickstart](#quickstart)
+- [Implemented Methods](#implemented-methods)
 - [Examples](#examples)
-  - [Basic initialization](#basic-initialization)
-  - [Send messages](#send-messages)
-    - [Without formatting](#without-formatting)
-    - [MarkdownV2](#markdownv2) 
-  - [InlineKeyboard](#inlinekeyboard)
+  - [Send Messages with Formatting](#send-messages-with-formatting)
+  - [Inline Keyboard](#inline-keyboard)
   - [Middleware](#middleware)
+- [Migration from 0.2.x](#migration-from-02x)
 
+## Installation
 
-# Introduction
-This library provides the ability to interact with VK Teams Bot API.
-
-API description  - https://teams.vk.com/botapi/
-
-[Метабот](https://teams.vk.com/profile/70001) for creating a bot and getting a token.
-
-# Installing
-```python
+```bash
 pip install -U vk-teams-async-bot
 # OR
 poetry add vk-teams-async-bot
 ```
 
-# Implemented methods in this library
+## Quickstart
 
+Set `BOT_TOKEN` environment variable (or pass directly):
 
-| method | ENDPOINT                       | EXISTS | name in library           |
-|--------|--------------------------------|--------|---------------------------|
-| GET    | /self/get                      | ✅      | bot.self_get              |
-| GET    | /messages/sendText             | ✅      | bot.send_text             |
-| GET    | /messages/sendFile             | ✅      | bot.send_file_by_id       |
-| POST   | /messages/sendFile             | ✅      | bot.send_file             |
-| GET    | /messages/sendVoice            | ✅      | bot.send_voice            |
-| POST   | /messages/sendVoice            | ✅      | bot.send_voice_by_id      |
-| GET    | /messages/editText             | ✅      | bot.edit_text             |
-| GET    | /messages/deleteMessages       | ✅      | bot.delete_msg            |
-| GET    | /messages/answerCallbackQuery  | ✅      | bot.answer_callback_query |
-
-
-
-# Examples
-
-## Basic initialization
 ```python
 import asyncio
+import os
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.filter import Filter
-from vk_teams_async_bot.handler import CommandHandler
+from vk_teams_async_bot import Bot, CommandFilter, Dispatcher, NewMessageEvent
 
-app = Bot(bot_token="TOKEN", url="URL")
-
-
-async def cmd_start(event: Event, bot: Bot):
-    await bot.send_text(chat_id=event.chat.chatId, text="Hello")
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
-app.dispatcher.add_handler(
-    CommandHandler(callback=cmd_start, filters=Filter.command("/start")),
+@dp.message(CommandFilter("/start"))
+async def cmd_start(event: NewMessageEvent, bot: Bot):
+    await bot.send_text(chat_id=event.chat.chat_id, text="Hello!")
+
+
+async def main():
+    async with bot:
+        await bot.start_polling(dp)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Implemented Methods
+
+| # | Endpoint | Method | HTTP |
+|---|----------|--------|------|
+| 1 | /self/get | `get_self()` | GET |
+| 2 | /messages/sendText | `send_text(chat_id, text, ...)` | GET |
+| 3 | /messages/sendFile | `send_file(chat_id, file_id=... or file=...)` | GET/POST |
+| 4 | /messages/sendVoice | `send_voice(chat_id, file_id=... or file=...)` | GET/POST |
+| 5 | /messages/editText | `edit_text(chat_id, msg_id, text, ...)` | GET |
+| 6 | /messages/deleteMessages | `delete_messages(chat_id, msg_id)` | GET |
+| 7 | /messages/answerCallbackQuery | `answer_callback_query(query_id, ...)` | GET |
+| 8 | /chats/createChat | `create_chat(name, ...)` | GET |
+| 9 | /chats/avatar/set | `set_chat_avatar(chat_id, image)` | POST |
+| 10 | /chats/members/add | `add_chat_members(chat_id, members)` | GET |
+| 11 | /chats/members/delete | `delete_chat_members(chat_id, members)` | GET |
+| 12 | /chats/sendActions | `send_chat_actions(chat_id, actions)` | GET |
+| 13 | /chats/getInfo | `get_chat_info(chat_id)` | GET |
+| 14 | /chats/getAdmins | `get_chat_admins(chat_id)` | GET |
+| 15 | /chats/getMembers | `get_chat_members(chat_id, cursor=...)` | GET |
+| 16 | /chats/getBlockedUsers | `get_blocked_users(chat_id)` | GET |
+| 17 | /chats/getPendingUsers | `get_pending_users(chat_id)` | GET |
+| 18 | /chats/blockUser | `block_user(chat_id, user_id, ...)` | GET |
+| 19 | /chats/unblockUser | `unblock_user(chat_id, user_id)` | GET |
+| 20 | /chats/resolvePending | `resolve_pending(chat_id, approve, ...)` | GET |
+| 21 | /chats/setTitle | `set_chat_title(chat_id, title)` | GET |
+| 22 | /chats/setAbout | `set_chat_about(chat_id, about)` | GET |
+| 23 | /chats/setRules | `set_chat_rules(chat_id, rules)` | GET |
+| 24 | /chats/pinMessage | `pin_message(chat_id, msg_id)` | GET |
+| 25 | /chats/unpinMessage | `unpin_message(chat_id, msg_id)` | GET |
+| 26 | /files/getInfo | `get_file_info(file_id)` | GET |
+| 27 | /events/get | `get_events(last_event_id, poll_time)` | GET |
+
+## Examples
+
+### Send Messages with Formatting
+
+```python
+from vk_teams_async_bot import Bot, Dispatcher, NewMessageEvent, ParseMode
+
+dp = Dispatcher()
+
+@dp.message()
+async def format_handler(event: NewMessageEvent, bot: Bot):
+    await bot.send_text(chat_id=event.chat.chat_id, text="plain text")
+    await bot.send_text(
+        chat_id=event.chat.chat_id,
+        text="*bold* _italic_ __underline__",
+        parse_mode=ParseMode.MARKDOWNV2,
+    )
+    await bot.send_text(
+        chat_id=event.chat.chat_id,
+        text="<b>bold</b>",
+        parse_mode=ParseMode.HTML,
+    )
+```
+
+#### MarkdownV2 Syntax
+
+```
+*bold*           _italic_          __underline__
+~strikethrough~  `inline code`     ```code block```
+[link](url)      @\[user@corp\]    >quote
+```
+
+### Inline Keyboard
+
+```python
+from vk_teams_async_bot import (
+    Bot, CallbackDataFilter, CallbackQueryEvent, CommandFilter,
+    Dispatcher, InlineKeyboardMarkup, KeyboardButton,
+    NewMessageEvent, StyleKeyboard,
 )
 
+dp = Dispatcher()
 
-async def main():
-    await app.start_polling()
+def start_keyboard():
+    kb = InlineKeyboardMarkup(buttons_in_row=3)
+    kb.add(
+        KeyboardButton(text="Button 1", callback_data="cb_one", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Button 2", callback_data="cb_two", style=StyleKeyboard.BASE),
+        KeyboardButton(text="Link", url="https://example.com/", style=StyleKeyboard.ATTENTION),
+    )
+    return kb
 
-
-if __name__ == "__main__":
-    asyncio.run(main())
-
-```
-
-## Send messages
-
-### Without formatting
-
-```python
-async def cmd_start(event: Event, bot: Bot):
-    await bot.send_text(chat_id=event.chat.chatId, text="Hello")
-    await bot.send_text(chat_id=event.chat.chatId, text="<b>Hello</b>")
-    await bot.send_text(chat_id=event.chat.chatId, text="*Hello*")
-```
-Result:
-
-![image](images/img.png)
-
-
-### MarkdownV2
-
-`parse_mode=ParseMode.MARKDOWNV2`
-
-- All special characters that do not represent the beginning or end of the style must be escaped using a backslash \
-#### Methods MarkdownV2
-```plain text
-1. *hello*   -  bold
-2. _hello_   -  italic
-3. __hello__ -  underline
-4. ~hello~   -  strikethrought
-5. [hello](https://example.com) - hyperlinked text
-6. @\[user@company\]            - to mention the VK Teams user
-7. ```hello```                  - inline code
-8. ```python print("hello") ``` - multiline block code
-9.  Ordered list:
-    1. First element
-    2. Second element
-10. Unordered list:
-    - First element
-    - Second element
-11. Quote:
-    >Begin of quote
-    >End of quote
-```
-
-```python
-async def cmd_start(event: Event, bot: Bot):
-    text = \
-        """
-        *hello*
-        _hello_
-        __hello__
-        """
-
+@dp.message(CommandFilter("/start"))
+async def cmd_start(event: NewMessageEvent, bot: Bot):
     await bot.send_text(
-        chat_id=event.chat.chatId, text=text, parse_mode=ParseMode.MARKDOWNV2
+        chat_id=event.chat.chat_id,
+        text="Choose an option:",
+        inline_keyboard_markup=start_keyboard(),
     )
+
+@dp.callback_query(CallbackDataFilter("cb_one"))
+async def on_button(event: CallbackQueryEvent, bot: Bot):
+    await bot.answer_callback_query(query_id=event.query_id, text="Clicked!")
 ```
-Result:
 
-![image](images/img_1.png)
-
-
-## InlineKeyboard
+### Middleware
 
 ```python
-from vk_teams_async_bot.constants import StyleKeyboard
-from vk_teams_async_bot.handler import CommandHandler
-from vk_teams_async_bot.helpers import InlineKeyboardMarkup, KeyboardButton
+from vk_teams_async_bot import BaseMiddleware, Dispatcher
 
-def keyboad_start_menu():
-    keyboard = InlineKeyboardMarkup(buttons_in_row=3)
-    keyboard.add(
-        KeyboardButton(
-            text="🛠 first button",
-            callback_data="cb_one",
-            style=StyleKeyboard.PRIMARY,
-        ),
-        KeyboardButton(
-            text="🕹 second button",
-            callback_data="cb_two",
-            style=StyleKeyboard.BASE,
-        ),
-        KeyboardButton(
-            text="🌐 third button",
-            url="https://example.com/",
-            style=StyleKeyboard.ATTENTION,
-        ),
-    )
-    return keyboard
+dp = Dispatcher()
 
+class LoggingMiddleware(BaseMiddleware):
+    async def __call__(self, handler, event, data):
+        print(f"Event: {event.type}")
+        result = await handler(event, data)
+        print(f"Done: {event.type}")
+        return result
 
-async def cmd_start(event: Event, bot: Bot):
-    text = """hello"""
-    await bot.send_text(
-        chat_id=event.chat.chatId,
-        text=text,
-        inline_keyboard_markup=keyboad_start_menu(),
-    )
+dp.add_middleware(LoggingMiddleware())
 ```
 
+## Migration from 0.2.x
 
-![image](images/img_2.png)
-
-You can specify the number of buttons in a row
-`InlineKeyboardMarkup(buttons_in_row=1)`
-
-![image](images/img_3.png)
-
-## Middleware
-You can check the incoming request or add any data for further use in handlers.
-
-### Check the access rights of the user or group
-```python
-from vk_teams_async_bot.middleware import Middleware
-
-class AccessMiddleware(Middleware):
-    async def handle(self, event, bot):
-        allowed_chats = [
-            "id@chat.agent",
-        ]
-
-        if event.chat.chatId not in allowed_chats:
-            text = f"Does not have rights to use the bot - {event.chat.chatId}"
-            await bot.send_text(chat_id=event.chat.chatId, text=text)
-            raise PermissionError(text)
-        return event
-
-async def main():
-    app.dispatcher.middlewares = [AccessMiddleware(),]
-
-    await app.start_polling()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-
-### Add a user or group role
-Let's imagine that we have a data source on our side with roles or user rights that we want to use to access a specific menu or handler
-
-```python
-from vk_teams_async_bot.middleware import Middleware
-
-class UserRoleMiddleware(Middleware):
-    async def handle(self, event, bot):
-        roles = {
-            "id@chat.agent": "admin",
-        }
-        event.middleware_data.update({"role": roles.get(event.chat.chatId)})
-        logger.debug(
-            "UserRoleMiddleware role for {chatID} - {role}".format(
-                chatID=event.chat.chatId, role=event.middleware_data.get("role")
-            )
-        )
-        return event
-
-
-async def main():
-    app.dispatcher.middlewares = [UserRoleMiddleware(),]
-
-    await app.start_polling()
-
-if __name__ == "__main__":
-    asyncio.run(main())
-```
-
-
-
-
+See [MIGRATION.md](MIGRATION.md) for a complete migration guide with before/after examples.
