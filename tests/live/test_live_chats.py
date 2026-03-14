@@ -5,6 +5,7 @@ import pytest
 
 from vk_teams_async_bot.types.chat import ChatInfoGroup, ChatInfoPrivate
 from vk_teams_async_bot.types.enums import ChatAction
+from vk_teams_async_bot.errors import APIError
 from vk_teams_async_bot.types.response import (
     AdminsResponse,
     MembersResponse,
@@ -130,3 +131,41 @@ class TestChatModification:
         assert result.ok is True
 
 
+class TestChatMembers:
+
+    async def test_delete_chat_members(self, bot, test_group_id, second_user_id):
+        result = await bot.delete_chat_members(
+            chat_id=test_group_id,
+            members=[second_user_id],
+        )
+        assert isinstance(result, OkResponse)
+        assert result.ok is True
+
+    async def test_block_unblock_user(self, bot, test_group_id, second_user_id):
+        block_result = await bot.block_user(
+            chat_id=test_group_id,
+            user_id=second_user_id,
+        )
+        assert isinstance(block_result, OkResponse)
+        assert block_result.ok is True
+
+        unblock_result = await bot.unblock_user(
+            chat_id=test_group_id,
+            user_id=second_user_id,
+        )
+        assert isinstance(unblock_result, OkResponse)
+        assert unblock_result.ok is True
+
+    async def test_resolve_pending(self, bot, test_group_id):
+        try:
+            result = await bot.resolve_pending(
+                chat_id=test_group_id,
+                approve=True,
+                everyone=True,
+            )
+            assert isinstance(result, OkResponse)
+            assert result.ok is True
+        except APIError as exc:
+            if "not pending or nobody in pending list" in str(exc):
+                pytest.skip("no pending users in test group")
+            raise

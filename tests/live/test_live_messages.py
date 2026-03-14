@@ -5,6 +5,7 @@ from pathlib import Path
 import pytest
 
 from vk_teams_async_bot.helpers import InlineKeyboardMarkup, KeyboardButton
+from vk_teams_async_bot.errors import APIError
 from vk_teams_async_bot.types.enums import ParseMode
 from vk_teams_async_bot.types.response import (
     FileUploadResponse,
@@ -206,5 +207,5 @@ async def test_answer_callback_query_fake(bot):
     """answer_callback_query requires a real callback from a user click.
     We verify the method shape by calling with a fake queryId and
     expecting an error response (the API returns ok=false)."""
-    with pytest.raises(Exception):
+    with pytest.raises(APIError):
         await bot.answer_callback_query(query_id="fake_query_id_000")

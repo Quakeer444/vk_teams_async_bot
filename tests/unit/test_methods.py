@@ -260,7 +260,7 @@ class TestSendText:
 class TestSendFile:
     @pytest.mark.asyncio
     async def test_with_file_id(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "200"}
+        msg_mixin._session.get.return_value = {"ok": True, "msgId": "200", "fileId": "abc123"}
 
         result = await msg_mixin.send_file(
             "chat1", file_id="abc123", caption="My file"
@@ -271,7 +271,7 @@ class TestSendFile:
         assert call_kwargs[0][0] == "/messages/sendFile"
         assert call_kwargs[1]["fileId"] == "abc123"
         assert call_kwargs[1]["caption"] == "My file"
-        assert isinstance(result, MessageResponse)
+        assert isinstance(result, FileUploadResponse)
 
     @pytest.mark.asyncio
     async def test_with_file_upload(self, msg_mixin, tmp_path):
@@ -329,7 +329,7 @@ class TestSendFile:
 
     @pytest.mark.asyncio
     async def test_with_all_get_params(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "203"}
+        msg_mixin._session.get.return_value = {"ok": True, "msgId": "203", "fileId": "fid"}
 
         result = await msg_mixin.send_file(
             "chat1",
@@ -345,7 +345,7 @@ class TestSendFile:
         assert call_kwargs["caption"] == "cap"
         assert call_kwargs["replyMsgId"] == json.dumps([1])
         assert call_kwargs["parseMode"] == "MarkdownV2"
-        assert isinstance(result, MessageResponse)
+        assert isinstance(result, FileUploadResponse)
 
     @pytest.mark.asyncio
     async def test_send_file_reply_and_forward_raises(self, msg_mixin):
@@ -372,14 +372,14 @@ class TestSendFile:
 class TestSendVoice:
     @pytest.mark.asyncio
     async def test_with_file_id(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "300"}
+        msg_mixin._session.get.return_value = {"ok": True, "msgId": "300", "fileId": "voice123"}
 
         result = await msg_mixin.send_voice("chat1", file_id="voice123")
 
         call_kwargs = msg_mixin._session.get.call_args
         assert call_kwargs[0][0] == "/messages/sendVoice"
         assert call_kwargs[1]["fileId"] == "voice123"
-        assert isinstance(result, MessageResponse)
+        assert isinstance(result, FileUploadResponse)
 
     @pytest.mark.asyncio
     async def test_with_file_upload(self, msg_mixin, tmp_path):
@@ -414,7 +414,7 @@ class TestSendVoice:
 
     @pytest.mark.asyncio
     async def test_with_forward(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "302"}
+        msg_mixin._session.get.return_value = {"ok": True, "msgId": "302", "fileId": "v1"}
 
         result = await msg_mixin.send_voice(
             "chat1",
@@ -425,7 +425,7 @@ class TestSendVoice:
 
         call_kwargs = msg_mixin._session.get.call_args[1]
         assert call_kwargs["forwardChatId"] == "other"
-        assert isinstance(result, MessageResponse)
+        assert isinstance(result, FileUploadResponse)
 
     @pytest.mark.asyncio
     async def test_reply_and_forward_raises(self, msg_mixin):
@@ -504,7 +504,7 @@ class TestDeleteMessages:
         result = await msg_mixin.delete_messages("chat1", [1, 2, 3])
 
         call_kwargs = msg_mixin._session.get.call_args[1]
-        assert call_kwargs["msgId"] == json.dumps([1, 2, 3])
+        assert call_kwargs["msgId"] == [1, 2, 3]
         assert isinstance(result, OkResponse)
 
 
@@ -556,18 +556,41 @@ class TestDownloadFile:
         mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
         mock_resp.__aexit__ = AsyncMock(return_value=False)
 
-        mock_http = MagicMock()
-        mock_http.get.return_value = mock_resp
-        msg_mixin._session._ensure_session = AsyncMock(
-            return_value=mock_http
-        )
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
 
-        result = await msg_mixin.download_file("https://files.example.com/f1")
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            result = await msg_mixin.download_file("https://files.example.com/f1")
 
         assert result == b"file content bytes"
-        mock_http.get.assert_called_once_with(
+        mock_session.get.assert_called_once_with(
             "https://files.example.com/f1"
         )
+
+    @pytest.mark.asyncio
+    async def test_raises_on_http_error(self, msg_mixin):
+        import aiohttp
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = aiohttp.ClientResponseError(
+            request_info=MagicMock(),
+            history=(),
+            status=404,
+            message="Not Found",
+        )
+        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
+        mock_resp.__aexit__ = AsyncMock(return_value=False)
+
+        mock_session = MagicMock()
+        mock_session.get.return_value = mock_resp
+        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
+        mock_session.__aexit__ = AsyncMock(return_value=False)
+
+        with patch("aiohttp.ClientSession", return_value=mock_session):
+            with pytest.raises(aiohttp.ClientResponseError):
+                await msg_mixin.download_file("https://files.example.com/f1")
 
 
 # ===================================================================

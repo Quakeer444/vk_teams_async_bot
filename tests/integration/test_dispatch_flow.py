@@ -9,6 +9,7 @@ import pytest
 
 from vk_teams_async_bot.dispatcher import Dispatcher
 from vk_teams_async_bot.filters.message import CommandFilter
+from vk_teams_async_bot.filters.state import StateFilter
 from vk_teams_async_bot.fsm import FSMContext, MemoryStorage, State, StatesGroup
 from vk_teams_async_bot.handlers.callback_query import CallbackQueryHandler
 from vk_teams_async_bot.handlers.message import MessageHandler
@@ -50,6 +51,7 @@ def _make_new_message_event(
 def _make_callback_event(
     callback_data: str = "btn1",
     event_id: int = 2,
+    include_message: bool = False,
 ) -> CallbackQueryEvent:
     raw = {
         "eventId": event_id,
@@ -61,6 +63,13 @@ def _make_callback_event(
             "callbackData": callback_data,
         },
     }
+    if include_message:
+        raw["payload"]["message"] = {
+            "msgId": "msg_in_cb",
+            "from": {"userId": "user1", "firstName": "Test"},
+            "text": "original message",
+            "timestamp": 999,
+        }
     event = parse_event(raw)
     assert isinstance(event, CallbackQueryEvent)
     return event
@@ -421,3 +430,87 @@ class TestFSMContextInjection:
         await storage.clear(("chat1", "user1"))
         assert await storage.get_state(("chat1", "user1")) is None
         assert await storage.get_state(("chat2", "user1")) == MyStates.active.state
+
+
+# -- Callback with message field tests ----------------------------------------
+
+
+class TestCallbackWithMessage:
+    @pytest.mark.asyncio
+    async def test_callback_event_with_message_field(self):
+        dp = Dispatcher()
+        received_events = []
+
+        dp.add_handler(
+            CallbackQueryHandler(
+                callback=AsyncMock(side_effect=lambda e, b: received_events.append(e))
+            )
+        )
+
+        event = _make_callback_event(include_message=True)
+        await dp.feed_event(event, FakeBot())
+
+        assert len(received_events) == 1
+        received = received_events[0]
+        assert received.callback_data == "btn1"
+        assert hasattr(received, "message")
+
+
+# -- Stateful callback flow (FSM + callback) ----------------------------------
+
+
+class TestStatefulCallbackFlow:
+    @pytest.mark.asyncio
+    async def test_fsm_state_set_by_message_read_by_callback(self):
+        storage = MemoryStorage()
+        dp = Dispatcher(storage=storage)
+
+        class Flow(StatesGroup):
+            waiting_callback = State()
+
+        @dp.message(CommandFilter("start"))
+        async def set_state(event, bot):
+            ctx = bot._fsm_context
+            await ctx.set_state(Flow.waiting_callback)
+
+        callback_received = []
+
+        dp.add_handler(
+            CallbackQueryHandler(
+                callback=AsyncMock(side_effect=lambda e, b: callback_received.append(e)),
+                filters=StateFilter(Flow.waiting_callback, storage=storage),
+            )
+        )
+
+        bot = FakeBot()
+
+        msg_event = _make_new_message_event(text="/start")
+        await dp.feed_event(msg_event, bot)
+
+        cb_event = _make_callback_event(callback_data="confirm")
+        await dp.feed_event(cb_event, bot)
+
+        assert len(callback_received) == 1
+
+    @pytest.mark.asyncio
+    async def test_fsm_state_blocks_unmatched_callback(self):
+        storage = MemoryStorage()
+        dp = Dispatcher(storage=storage)
+
+        class Flow(StatesGroup):
+            waiting_callback = State()
+
+        callback_received = []
+
+        dp.add_handler(
+            CallbackQueryHandler(
+                callback=AsyncMock(side_effect=lambda e, b: callback_received.append(e)),
+                filters=StateFilter(Flow.waiting_callback, storage=storage),
+            )
+        )
+
+        bot = FakeBot()
+        cb_event = _make_callback_event(callback_data="confirm")
+        await dp.feed_event(cb_event, bot)
+
+        assert len(callback_received) == 0
