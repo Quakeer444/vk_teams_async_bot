@@ -1,14 +1,13 @@
 import asyncio
+import os
 from typing import Annotated
 
 import aiohttp
 
-from local_.config import env
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.handler import MessageHandler
+from vk_teams_async_bot import Bot, Dispatcher, NewMessageEvent
 
-app = Bot(bot_token=env.TEST_BOT_TOKEN.get_secret_value())
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
 async def create_session():
@@ -34,8 +33,9 @@ def list_permissions():
     return ["Success"]
 
 
+@dp.message()
 async def echo_handler(
-    event: Event,
+    event: NewMessageEvent,
     bot: Bot,
     rules: list_rules,
     list_permissons: list_permissions,
@@ -45,21 +45,15 @@ async def echo_handler(
         print(res.status)
         print(rules)
         print(list_permissons)
-    await bot.send_text(chat_id=event.chat.chatId, text=event.text)
-
-
-app.dispatcher.add_handler(
-    MessageHandler(
-        callback=echo_handler,
-    )
-)
+    await bot.send_text(chat_id=event.chat.chat_id, text=event.text or "")
 
 
 async def main():
-    app.depends.append(gen)
-    app.depends.append(list_rules)
-    app.depends.append(list_permissions)
-    await app.start_polling()
+    bot.depends.append(gen)
+    bot.depends.append(list_rules)
+    bot.depends.append(list_permissions)
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":

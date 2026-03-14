@@ -1,26 +1,20 @@
 import asyncio
+import os
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.handler import MessageHandler
-from local_.config import env
+from vk_teams_async_bot import Bot, Dispatcher, MessageHandler, NewMessageEvent
 
-app = Bot(bot_token=env.TEST_BOT_TOKEN.get_secret_value())
-
-
-async def echo_handler(event: Event, bot: Bot):
-    await bot.send_text(chat_id=event.chat.chatId, text=event.text)
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
-app.dispatcher.add_handler(
-    MessageHandler(
-        callback=echo_handler,
-    )
-)
+@dp.message()
+async def echo_handler(event: NewMessageEvent, bot: Bot):
+    await bot.send_text(chat_id=event.chat.chat_id, text=event.text or "")
 
 
 async def main():
-    await app.start_polling()
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":

@@ -1,38 +1,42 @@
-"""
-Составление основного и вложенных меню через Inline кнопки
-"""
+"""Building main and nested menus via inline keyboard buttons."""
 
 import asyncio
+import os
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.constants import StyleKeyboard
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.filter import Filter
-from vk_teams_async_bot.handler import BotButtonCommandHandler, CommandHandler
-from vk_teams_async_bot.helpers import InlineKeyboardMarkup, KeyboardButton
-from local_.config import env
+from vk_teams_async_bot import (
+    Bot,
+    CallbackDataFilter,
+    CallbackQueryEvent,
+    CommandFilter,
+    Dispatcher,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    NewMessageEvent,
+    StyleKeyboard,
+)
 
-app = Bot(bot_token=env.TEST_BOT_TOKEN.get_secret_value())
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
-def keyboad_start_menu():
+def keyboard_start_menu():
     keyboard = InlineKeyboardMarkup(buttons_in_row=2)
     keyboard.add(
         KeyboardButton(
-            text="1️⃣ go first menu",
+            text="1 go first menu",
             callback_data="cb_first_menu",
             style=StyleKeyboard.PRIMARY,
         ),
-        KeyboardButton(text="🕹 dev", callback_data="cb_dev"),
+        KeyboardButton(text="dev", callback_data="cb_dev"),
     )
     return keyboard
 
 
-def keyboad_first_menu():
+def keyboard_first_menu():
     keyboard = InlineKeyboardMarkup(buttons_in_row=1)
     keyboard.add(
         KeyboardButton(
-            text="2️⃣ go second menu",
+            text="2 go second menu",
             callback_data="cb_second_menu",
             style=StyleKeyboard.PRIMARY,
         ),
@@ -45,7 +49,7 @@ def keyboad_first_menu():
     return keyboard
 
 
-def keyboad_second_menu():
+def keyboard_second_menu():
     keyboard = InlineKeyboardMarkup(buttons_in_row=1)
     keyboard.add(
         KeyboardButton(
@@ -57,61 +61,50 @@ def keyboad_second_menu():
     return keyboard
 
 
-async def start_menu(event: Event, bot: Bot):
-    if hasattr(event, "callbackData"):
-        await bot.answer_callback_query(query_id=event.queryId)
-    text = "hello" if event.text else "you are back in the start menu"
+@dp.message(CommandFilter("/start"))
+async def start_menu_cmd(event: NewMessageEvent, bot: Bot):
     await bot.send_text(
-        chat_id=event.chat.chatId,
-        text=text,
-        inline_keyboard_markup=keyboad_start_menu(),
+        chat_id=event.chat.chat_id,
+        text="hello",
+        inline_keyboard_markup=keyboard_start_menu(),
     )
 
 
-async def first_menu(event: Event, bot: Bot):
-    await bot.answer_callback_query(query_id=event.queryId)
+@dp.callback_query(CallbackDataFilter("cb_back_start_menu"))
+async def start_menu_cb(event: CallbackQueryEvent, bot: Bot):
+    await bot.answer_callback_query(query_id=event.query_id)
+    await bot.send_text(
+        chat_id=event.chat.chat_id,
+        text="you are back in the start menu",
+        inline_keyboard_markup=keyboard_start_menu(),
+    )
+
+
+@dp.callback_query(CallbackDataFilter("cb_first_menu"))
+async def first_menu(event: CallbackQueryEvent, bot: Bot):
+    await bot.answer_callback_query(query_id=event.query_id)
     await bot.edit_text(
-        chat_id=event.chat.chatId,
-        msg_id=event.cb_message.msgId,
+        chat_id=event.chat.chat_id,
+        msg_id=event.message.msg_id,
         text="you are in the first menu",
-        inline_keyboard_markup=keyboad_first_menu(),
+        inline_keyboard_markup=keyboard_first_menu(),
     )
 
 
-async def second_menu(event: Event, bot: Bot):
+@dp.callback_query(CallbackDataFilter("cb_second_menu"))
+async def second_menu(event: CallbackQueryEvent, bot: Bot):
+    await bot.answer_callback_query(query_id=event.query_id)
     await bot.edit_text(
-        chat_id=event.chat.chatId,
-        msg_id=event.cb_message.msgId,
+        chat_id=event.chat.chat_id,
+        msg_id=event.message.msg_id,
         text="you are in the second menu",
-        inline_keyboard_markup=keyboad_second_menu(),
+        inline_keyboard_markup=keyboard_second_menu(),
     )
-
-
-app.dispatcher.add_handler(
-    CommandHandler(callback=start_menu, filters=Filter.command("/start")),
-)
-
-app.dispatcher.add_handler(
-    BotButtonCommandHandler(
-        callback=first_menu, filters=Filter.callback_data("cb_first_menu")
-    )
-)
-
-app.dispatcher.add_handler(
-    BotButtonCommandHandler(
-        callback=second_menu, filters=Filter.callback_data("cb_second_menu")
-    )
-)
-
-app.dispatcher.add_handler(
-    BotButtonCommandHandler(
-        callback=start_menu, filters=Filter.callback_data("cb_back_start_menu")
-    )
-)
 
 
 async def main():
-    await app.start_polling()
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":

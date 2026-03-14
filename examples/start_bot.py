@@ -1,24 +1,20 @@
 import asyncio
+import os
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.filter import Filter
-from vk_teams_async_bot.handler import CommandHandler
+from vk_teams_async_bot import Bot, CommandFilter, Dispatcher, NewMessageEvent
 
-app = Bot(bot_token="TOKEN", url="URL")
-
-
-async def cmd_start(event: Event, bot: Bot):
-    await bot.send_text(chat_id=event.chat.chatId, text="Hello")
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
-app.dispatcher.add_handler(
-    CommandHandler(callback=cmd_start, filters=Filter.command("/start")),
-)
+@dp.message(CommandFilter("/start"))
+async def cmd_start(event: NewMessageEvent, bot: Bot):
+    await bot.send_text(chat_id=event.chat.chat_id, text="Hello")
 
 
 async def main():
-    await app.start_polling()
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":

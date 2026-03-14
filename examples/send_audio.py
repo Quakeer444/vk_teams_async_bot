@@ -1,59 +1,52 @@
 import asyncio
+import os
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.handler import MessageHandler
+from vk_teams_async_bot import Bot, Dispatcher, NewMessageEvent
 
-app = Bot(bot_token="TOKEN", url="URL")
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 
 
-async def echo_handler(event: Event, bot: Bot):
-    path_image = r"..\images\img_3.png"
-    path_pdf = r"..\images\png2pdf.pdf"
-    path_audio = r"..\images\test.mp3"
+@dp.message()
+async def file_handler(event: NewMessageEvent, bot: Bot):
+    path_image = "../images/img_3.png"
+    path_pdf = "../images/png2pdf.pdf"
+    path_audio = "../images/test.mp3"
 
     result_image = await bot.send_file(
-        chat_id=event.chat.chatId,
-        file_path=path_image,
-        filename="test_image/png",
+        chat_id=event.chat.chat_id,
+        file=path_image,
         caption="this is the test image",
     )
     result_pdf = await bot.send_file(
-        chat_id=event.chat.chatId,
-        file_path=path_pdf,
-        filename="test_pdf.pdf",
+        chat_id=event.chat.chat_id,
+        file=path_pdf,
         caption="this is the test pdf file",
     )
     result_audio = await bot.send_voice(
-        chat_id=event.chat.chatId,
-        file_path=path_audio,
-        filename="test_audio.mp3",
+        chat_id=event.chat.chat_id,
+        file=path_audio,
     )
 
-    image_id = result_image["fileId"]
-    pdf_id = result_pdf["fileId"]
-    audio_id = result_audio["fileId"]
-
-    await bot.send_file_by_id(
-        chat_id=event.chat.chatId,
-        file_id=image_id,
+    await bot.send_file(
+        chat_id=event.chat.chat_id,
+        file_id=result_image.file_id,
         caption="Image from the Bot API server",
     )
-    await bot.send_file_by_id(
-        chat_id=event.chat.chatId, file_id=pdf_id, caption="Pdf from the Bot API server"
+    await bot.send_file(
+        chat_id=event.chat.chat_id,
+        file_id=result_pdf.file_id,
+        caption="Pdf from the Bot API server",
     )
-    await bot.send_voice_by_id(chat_id=event.chat.chatId, file_id=audio_id)
-
-
-app.dispatcher.add_handler(
-    MessageHandler(
-        callback=echo_handler,
+    await bot.send_voice(
+        chat_id=event.chat.chat_id,
+        file_id=result_audio.file_id,
     )
-)
 
 
 async def main():
-    await app.start_polling()
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":

@@ -1,65 +1,71 @@
 import asyncio
 import logging
+import os
+from typing import Any
 
-from vk_teams_async_bot.bot import Bot
-from vk_teams_async_bot.events import Event
-from vk_teams_async_bot.filter import Filter
-from vk_teams_async_bot.handler import CommandHandler
-from vk_teams_async_bot.middleware import Middleware
+from vk_teams_async_bot import (
+    BaseMiddleware,
+    Bot,
+    CommandFilter,
+    Dispatcher,
+    NewMessageEvent,
+)
+from vk_teams_async_bot.types.event import BaseEvent, RawUnknownEvent
 
-app = Bot(bot_token="TOKEN", url="URL")
+bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+dp = Dispatcher()
 logger = logging.getLogger(__name__)
 
 
-async def cmd_start(event: Event, bot: Bot):
-    await bot.send_text(chat_id=event.chat.chatId, text="Hello")
+@dp.message(CommandFilter("/start"))
+async def cmd_start(event: NewMessageEvent, bot: Bot):
+    await bot.send_text(chat_id=event.chat.chat_id, text="Hello")
 
 
-app.dispatcher.add_handler(
-    CommandHandler(callback=cmd_start, filters=Filter.command("/start")),
-)
+class AccessMiddleware(BaseMiddleware):
+    """Check user/group access rights before processing."""
 
-
-class AccessMiddleware(Middleware):
-    """
-    Проверить права доступа пользователя или группы на использования бота
-    """
-
-    async def handle(self, event, bot):
+    async def __call__(self, handler, event, data):
         allowed_chats = [
             "id@chat.agent",
         ]
 
-        if event.chat.chatId not in allowed_chats:
-            text = f"Does not have rights to use the bot - {event.chat.chatId}"
-            await bot.send_text(chat_id=event.chat.chatId, text=text)
-            raise PermissionError(text)
-        return event
+        if isinstance(event, (BaseEvent,)) and hasattr(event, "chat"):
+            if event.chat.chat_id not in allowed_chats:
+                bot = data["bot"]
+                text = f"Does not have rights to use the bot - {event.chat.chat_id}"
+                await bot.send_text(chat_id=event.chat.chat_id, text=text)
+                return
+
+        return await handler(event, data)
 
 
-class UserRoleMiddleware(Middleware):
-    """
-    Проверить права пользователя (из словаря, бд и т.д.) и добавить эти данные в событие Event,
-    с которыми можно работать в каждом handler
-    """
+class UserRoleMiddleware(BaseMiddleware):
+    """Inject user role into the data dict for use in handlers."""
 
-    async def handle(self, event, bot):
+    async def __call__(self, handler, event, data):
         roles = {
             "id@chat.agent": "admin",
         }
-        event.middleware_data.update({"role": roles.get(event.chat.chatId)})
-        logger.debug(
-            "UserRoleMiddleware role for {chatID} - {role}".format(
-                chatID=event.chat.chatId, role=event.middleware_data.get("role")
+
+        if isinstance(event, (BaseEvent,)) and hasattr(event, "chat"):
+            data["role"] = roles.get(event.chat.chat_id)
+            logger.debug(
+                "UserRoleMiddleware role for %s - %s",
+                event.chat.chat_id,
+                data.get("role"),
             )
-        )
-        return event
+
+        return await handler(event, data)
+
+
+dp.add_middleware(AccessMiddleware())
+dp.add_middleware(UserRoleMiddleware())
 
 
 async def main():
-    app.dispatcher.middlewares = [AccessMiddleware(), UserRoleMiddleware()]
-
-    await app.start_polling()
+    async with bot:
+        await bot.start_polling(dp)
 
 
 if __name__ == "__main__":
