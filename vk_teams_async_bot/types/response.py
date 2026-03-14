@@ -27,6 +27,7 @@ class FileUploadResponse(VKTeamsModel):
 
 
 class ChatCreateResponse(VKTeamsModel):
+    ok: bool = True
     sn: str
 
 
@@ -41,11 +42,13 @@ class PartialSuccessResponse(VKTeamsModel):
 
 
 class MembersResponse(VKTeamsModel):
+    ok: bool = True
     members: list[UserAdmin]
     cursor: str | None = None
 
 
 class AdminsResponse(VKTeamsModel):
+    ok: bool = True
     admins: list[UserAdmin]
 
 
@@ -54,6 +57,7 @@ class UserIdItem(VKTeamsModel):
 
 
 class UsersResponse(VKTeamsModel):
+    ok: bool = True
     users: list[UserIdItem]
 
 

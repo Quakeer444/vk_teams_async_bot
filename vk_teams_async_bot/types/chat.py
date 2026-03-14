@@ -10,6 +10,7 @@ from .user import PhotoUrl
 
 
 class ChatInfoPrivate(VKTeamsModel):
+    ok: bool = True
     type: Literal[ChatType.PRIVATE] = ChatType.PRIVATE
     first_name: str | None = Field(default=None, alias="firstName")
     last_name: str | None = Field(default=None, alias="lastName")
@@ -21,6 +22,7 @@ class ChatInfoPrivate(VKTeamsModel):
 
 
 class ChatInfoGroup(VKTeamsModel):
+    ok: bool = True
     type: Literal[ChatType.GROUP] = ChatType.GROUP
     title: str | None = None
     about: str | None = None
@@ -31,6 +33,7 @@ class ChatInfoGroup(VKTeamsModel):
 
 
 class ChatInfoChannel(VKTeamsModel):
+    ok: bool = True
     type: Literal[ChatType.CHANNEL] = ChatType.CHANNEL
     title: str | None = None
     about: str | None = None

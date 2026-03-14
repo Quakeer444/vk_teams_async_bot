@@ -56,6 +56,10 @@ class ChatMethods(BaseMethods):
     ) -> ChatCreateResponse:
         """Create a new chat.
 
+        Private method (on-premise only). Requires system administrator
+        to add ``/chats/createChat <botId>`` to the
+        ``bot_api_private_methods`` table.
+
         Endpoint: GET /chats/createChat
         """
         raw = await self._session.get(
@@ -110,6 +114,10 @@ class ChatMethods(BaseMethods):
         members: list[str],
     ) -> PartialSuccessResponse:
         """Add members to a chat.
+
+        Private method (on-premise only). Requires system administrator
+        to add ``/chats/members/add <botId>`` to the
+        ``bot_api_private_methods`` table.
 
         Endpoint: GET /chats/members/add
         """
