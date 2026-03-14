@@ -111,11 +111,23 @@ class CallbackQueryEvent(BaseEvent):
     """A callback button was pressed."""
 
     type: Literal[EventType.CALLBACK_QUERY] = EventType.CALLBACK_QUERY
-    chat: EventChatRef
+    chat: EventChatRef | None = None
     from_: User = Field(alias="from")
     query_id: str = Field(alias="queryId")
     callback_data: str = Field(alias="callbackData")
     message: NestedMessage | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _fill_chat_from_message(cls, data: dict) -> dict:
+        """Populate chat from message.chat when the API omits top-level chat."""
+        if not isinstance(data, dict):
+            return data
+        if data.get("chat") is None:
+            msg = data.get("message")
+            if isinstance(msg, dict) and "chat" in msg:
+                data = {**data, "chat": msg["chat"]}
+        return data
 
 
 class RawUnknownEvent(VKTeamsFlexModel):
@@ -184,12 +196,17 @@ def parse_event(raw: dict) -> BaseEvent | RawUnknownEvent:
             raw_data=raw,
         ) from exc
 
+    logger.debug("Flattened event: %s", flat)
+
     # Parse via discriminated union
     adapter = TypeAdapter(Event)
     try:
-        return adapter.validate_python(flat)
+        parsed = adapter.validate_python(flat)
     except ValidationError as exc:
         raise EventParsingError(
             f"Failed to parse event type={event_type}: {exc}",
             raw_data=raw,
         ) from exc
+
+    logger.debug("Parsed event: %r", parsed)
+    return parsed

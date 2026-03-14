@@ -225,6 +225,7 @@ class Bot(
         event: BaseEvent | RawUnknownEvent,
     ) -> None:
         """Dispatch a single event, catching exceptions."""
+        logger.debug("Dispatching event %s: %r", event.event_id, event)
         try:
             await dispatcher.feed_event(event, self)
         except Exception:

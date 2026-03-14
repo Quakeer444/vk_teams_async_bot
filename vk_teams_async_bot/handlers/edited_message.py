@@ -10,4 +10,7 @@ class EditedMessageHandler(BaseHandler):
     """Handler that only processes EditedMessageEvent events."""
 
     def check(self, event: BaseEvent) -> bool:
-        return super().check(event) and isinstance(event, EditedMessageEvent)
+        return isinstance(event, EditedMessageEvent) and super().check(event)
+
+    async def check_async(self, event: BaseEvent) -> bool:
+        return isinstance(event, EditedMessageEvent) and await super().check_async(event)

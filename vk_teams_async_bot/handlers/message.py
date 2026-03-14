@@ -10,4 +10,7 @@ class MessageHandler(BaseHandler):
     """Handler that only processes NewMessageEvent events."""
 
     def check(self, event: BaseEvent) -> bool:
-        return super().check(event) and isinstance(event, NewMessageEvent)
+        return isinstance(event, NewMessageEvent) and super().check(event)
+
+    async def check_async(self, event: BaseEvent) -> bool:
+        return isinstance(event, NewMessageEvent) and await super().check_async(event)

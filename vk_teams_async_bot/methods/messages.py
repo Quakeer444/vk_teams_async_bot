@@ -181,7 +181,7 @@ class MessageMethods(BaseMethods):
         inline_keyboard_markup: Any | None = None,
         format_: Any | None = None,
         parse_mode: ParseMode | None = None,
-    ) -> MessageResponse | FileUploadResponse:
+    ) -> FileUploadResponse:
         """Send a file.
 
         If ``file_id`` is provided, sends via GET (previously uploaded file).
@@ -209,7 +209,7 @@ class MessageMethods(BaseMethods):
                 format=_serialize_format(format_),
                 parseMode=parse_mode.value if parse_mode else None,
             )
-            return MessageResponse.model_validate(raw)
+            return FileUploadResponse.model_validate(raw)
 
         # file upload (POST)
         form = _build_form_data(file)  # type: ignore[arg-type]
@@ -237,7 +237,7 @@ class MessageMethods(BaseMethods):
         forward_chat_id: str | None = None,
         forward_msg_id: Any | None = None,
         inline_keyboard_markup: Any | None = None,
-    ) -> MessageResponse | FileUploadResponse:
+    ) -> FileUploadResponse:
         """Send a voice message.
 
         If ``file_id`` is provided, sends via GET.
@@ -261,7 +261,7 @@ class MessageMethods(BaseMethods):
                     inline_keyboard_markup
                 ),
             )
-            return MessageResponse.model_validate(raw)
+            return FileUploadResponse.model_validate(raw)
 
         form = _build_form_data(file)  # type: ignore[arg-type]
         raw = await self._session.post(
@@ -314,7 +314,7 @@ class MessageMethods(BaseMethods):
         raw = await self._session.get(
             "/messages/deleteMessages",
             chatId=chat_id,
-            msgId=_serialize_msg_ids(msg_id) if isinstance(msg_id, list) else msg_id,
+            msgId=msg_id,
         )
         return OkResponse.model_validate(raw)
 
@@ -344,10 +344,12 @@ class MessageMethods(BaseMethods):
     async def download_file(self, url: str) -> bytes:
         """Download a file from an arbitrary URL.
 
-        This bypasses the normal API endpoint mechanism and performs
-        a raw GET request using the underlying aiohttp session.
+        Uses a standalone aiohttp session (no base_url) so that
+        absolute file URLs returned by the API work correctly.
         """
-        http_session = await self._session._ensure_session()
-        async with http_session.get(url) as resp:
-            resp.raise_for_status()
-            return await resp.read()
+        import aiohttp
+
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                resp.raise_for_status()
+                return await resp.read()

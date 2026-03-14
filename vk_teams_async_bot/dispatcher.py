@@ -258,7 +258,7 @@ class Dispatcher:
             if fsm_context is not None:
                 bot._fsm_context = fsm_context
 
-            await handler.handle(event, bot)
+            await handler.handle(event, bot, extra_kwargs=data)
             return
 
     def _inject_storage(self, handler: BaseHandler) -> None:

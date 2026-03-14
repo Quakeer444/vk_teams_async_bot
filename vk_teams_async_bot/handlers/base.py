@@ -97,16 +97,39 @@ class BaseHandler:
 
         return depends
 
-    async def handle(self, event: BaseEvent, bot: Any) -> None:
+    async def handle(
+        self,
+        event: BaseEvent,
+        bot: Any,
+        *,
+        extra_kwargs: dict[str, Any] | None = None,
+    ) -> None:
         """Execute the callback with DI resolution.
 
         Resolves dependencies (sync functions, coroutine functions,
         async generators) and passes them as kwargs to the callback.
         Async generators are properly closed in a finally block.
+
+        ``extra_kwargs`` (e.g. fsm_context) are matched by parameter name
+        against the callback signature before DI lookup.
         """
+        signature = inspect.signature(self.callback)
         handle_kwargs = await self.check_signature(bot)
 
         objects: dict[str, Any] = {}
+
+        # Inject extra kwargs that match callback parameter names,
+        # skipping positional args (event, bot) and DI-resolved deps
+        positional = set(list(signature.parameters)[:2])
+        if extra_kwargs:
+            for param_name in signature.parameters:
+                if (
+                    param_name not in positional
+                    and param_name not in handle_kwargs
+                    and param_name in extra_kwargs
+                ):
+                    objects[param_name] = extra_kwargs[param_name]
+
         async_generators: list[Any] = []
         try:
             for item_name, item_func in handle_kwargs.items():

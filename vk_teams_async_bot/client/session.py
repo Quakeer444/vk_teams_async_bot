@@ -109,10 +109,28 @@ class VKTeamsSession:
 
     # -- Internal helpers --------------------------------------------------
 
-    def _build_params(self, params: dict[str, Any]) -> dict[str, Any]:
-        """Merge token into params and drop None values."""
+    def _build_params(
+        self, params: dict[str, Any]
+    ) -> dict[str, Any] | list[tuple[str, Any]]:
+        """Merge token into params and drop None values.
+
+        If any value is a list, returns a list of tuples so aiohttp
+        sends repeated query parameters (e.g. ``msgId=1&msgId=2``).
+        """
         merged = {"token": self._bot_token, **params}
-        return {k: v for k, v in merged.items() if v is not None}
+        has_list = any(isinstance(v, list) for v in merged.values())
+        if not has_list:
+            return {k: v for k, v in merged.items() if v is not None}
+        result: list[tuple[str, Any]] = []
+        for k, v in merged.items():
+            if v is None:
+                continue
+            if isinstance(v, list):
+                for item in v:
+                    result.append((k, item))
+            else:
+                result.append((k, v))
+        return result
 
     async def _ensure_session(self) -> ClientSession:
         """Return the existing session or create a new one."""

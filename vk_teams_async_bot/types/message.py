@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, ValidationError
+from pydantic import Field, ValidationError, model_validator
 
 from .base import VKTeamsFlexModel
 from .enums import Parts
@@ -14,14 +14,37 @@ from .user import User
 logger = logging.getLogger(__name__)
 
 
+class NestedMessageChat(VKTeamsFlexModel):
+    """Chat reference inside a nested message (callbackQuery, forward, reply)."""
+
+    chat_id: str = Field(alias="chatId")
+    type: str | None = None
+    title: str | None = None
+
+
 class NestedMessage(VKTeamsFlexModel):
-    """Shared model for forward/reply/callbackQuery message payloads."""
+    """Shared model for forward/reply/callbackQuery message payloads.
+
+    The VK Teams API wraps callbackQuery messages in the full event
+    structure: ``{eventId, type, payload: {msgId, chat, from, ...}}``.
+    The model validator flattens this so fields are accessible directly.
+    """
 
     from_: User = Field(alias="from")
     msg_id: str = Field(alias="msgId")
     text: str | None = None
     format_: dict | None = Field(default=None, alias="format")
     timestamp: int | None = None
+    chat: NestedMessageChat | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _flatten_nested_payload(cls, data: dict) -> dict:
+        """Flatten {eventId, type, payload: {...}} into a single dict."""
+        if isinstance(data, dict) and "payload" in data and isinstance(data["payload"], dict):
+            payload = data["payload"]
+            return {**data, **payload}
+        return data
 
 
 class FilePartPayload(VKTeamsFlexModel):

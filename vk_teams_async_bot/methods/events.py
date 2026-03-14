@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import logging
+
 from vk_teams_async_bot.types.event import (
     BaseEvent,
     RawUnknownEvent,
@@ -9,6 +11,8 @@ from vk_teams_async_bot.types.event import (
 )
 
 from .base import BaseMethods
+
+logger = logging.getLogger(__name__)
 
 
 class EventMethods(BaseMethods):
@@ -32,4 +36,6 @@ class EventMethods(BaseMethods):
             pollTime=poll_time,
         )
         raw_events: list[dict] = raw.get("events", [])
+        for ev in raw_events:
+            logger.debug("Raw event: %s", ev)
         return [parse_event(ev) for ev in raw_events]

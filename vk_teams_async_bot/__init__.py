@@ -93,8 +93,3 @@ from .types import (
     User,
     parse_event,
 )
-
-# Legacy re-exports for backward compatibility during migration
-from .constants import ChatType as _LegacyChatType
-from .constants import ParseMode as _LegacyParseMode
-from .constants import StyleKeyboard as _LegacyStyleKeyboard

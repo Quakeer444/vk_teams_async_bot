@@ -19,4 +19,5 @@ class FileMethods(BaseMethods):
             "/files/getInfo",
             fileId=file_id,
         )
-        return FileInfo.model_validate(raw)
+        data = {k: v for k, v in raw.items() if k != "ok"}
+        return FileInfo.model_validate(data)
