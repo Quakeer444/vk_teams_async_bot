@@ -1,8 +1,100 @@
+"""VK Teams Async Bot -- async Python library for VK Teams Bot API."""
+
 from .bot import Bot
-from .constants import ChatType, ParseMode, StyleKeyboard
-from .events import Event, EventType
-from .filter import Filter
-from .handler import BotButtonCommandHandler, CommandHandler, MessageHandler
-from .helpers import Format, InlineKeyboardMarkup, KeyboardButton
-from .middleware import Middleware
-from .state import DictUserState, StateData
+from .dispatcher import Dispatcher
+from .errors import (
+    APIError,
+    EventParsingError,
+    NetworkError,
+    PollingError,
+    RateLimitError,
+    ServerError,
+    SessionError,
+    TimeoutError,
+    VKTeamsError,
+)
+from .filters import (
+    CallbackDataFilter,
+    CallbackDataRegexpFilter,
+    CommandFilter,
+    FileFilter,
+    FilterBase,
+    ForwardFilter,
+    MentionFilter,
+    MessageFilter,
+    MessageTextPartFromNickFilter,
+    NotFilter,
+    RegexpFilter,
+    RegexpTextPartsFilter,
+    ReplyFilter,
+    StateFilter,
+    StickerFilter,
+    TagFilter,
+    VoiceFilter,
+)
+from .fsm import (
+    BaseStorage,
+    FSMContext,
+    MemoryStorage,
+    State,
+    StatesGroup,
+    StorageKey,
+)
+from .handlers import (
+    BaseHandler,
+    CallbackQueryHandler,
+    CommandHandler,
+    DeletedMessageHandler,
+    EditedMessageHandler,
+    LeftChatMembersHandler,
+    MessageHandler,
+    NewChatMembersHandler,
+    PinnedMessageHandler,
+    UnpinnedMessageHandler,
+)
+from .middleware import (
+    BaseMiddleware,
+    MiddlewareManager,
+    SessionTimeoutMiddleware,
+)
+from .types import (
+    BaseEvent,
+    BotInfo,
+    CallbackQueryEvent,
+    ChatAction,
+    ChatInfoChannel,
+    ChatInfoGroup,
+    ChatInfoPrivate,
+    ChatInfoResponse,
+    ChatType,
+    DeletedMessageEvent,
+    EditedMessageEvent,
+    Event,
+    EventChatRef,
+    EventType,
+    FileInfo,
+    Format,
+    InlineKeyboardMarkup,
+    KeyboardButton,
+    LeftChatMembersEvent,
+    MessagePart,
+    MessageResponse,
+    NewChatMembersEvent,
+    NewMessageEvent,
+    OkResponse,
+    ParseMode,
+    Parts,
+    PinnedMessageEvent,
+    RawUnknownEvent,
+    Style,
+    StyleKeyboard,
+    StyleType,
+    UnpinnedMessageEvent,
+    User,
+    parse_event,
+)
+
+# Legacy re-exports for backward compatibility during migration
+from .constants import ChatType as _LegacyChatType
+from .constants import ParseMode as _LegacyParseMode
+from .constants import StyleKeyboard as _LegacyStyleKeyboard

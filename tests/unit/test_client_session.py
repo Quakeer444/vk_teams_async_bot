@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import re
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -18,6 +19,10 @@ BASE_URL = "https://api.example.com"
 BASE_PATH = "/bot/v1"
 TOKEN = "test-token-123"
 FULL_URL = f"{BASE_URL}{BASE_PATH}"
+
+# Use regex patterns for URL matching (aioresponses 0.7.8 + aiohttp 3.13.x compat)
+SELF_GET = re.compile(r".*/bot/v1/self/get")
+SEND_TEXT = re.compile(r".*/bot/v1/messages/sendText")
 
 
 @pytest.fixture
@@ -43,10 +48,7 @@ class TestSuccessResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    payload={"ok": True, "nick": "bot"},
-                )
+                m.get(SELF_GET, payload={"ok": True, "nick": "bot"})
                 result = await session.get("/self/get")
 
             assert result == {"ok": True, "nick": "bot"}
@@ -58,10 +60,7 @@ class TestSuccessResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.post(
-                    f"{FULL_URL}/messages/sendText",
-                    payload={"ok": True, "msgId": "abc123"},
-                )
+                m.post(SEND_TEXT, payload={"ok": True, "msgId": "abc123"})
                 result = await session.post("/messages/sendText", chatId="chat1", text="hi")
 
             assert result == {"ok": True, "msgId": "abc123"}
@@ -73,14 +72,12 @@ class TestSuccessResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    payload={"ok": True},
-                )
+                m.get(SELF_GET, payload={"ok": True})
                 await session.get("/self/get")
 
                 # Inspect the request that was actually made
-                call_args = m.requests[("GET", m.requests.keys().__iter__().__next__())]
+                key = next(iter(m.requests.keys()))
+                call_args = m.requests[key]
                 request_params = call_args[0].kwargs.get("params", {})
                 assert request_params.get("token") == TOKEN
 
@@ -96,10 +93,7 @@ class TestErrorResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    payload={"ok": False, "description": "Invalid token"},
-                )
+                m.get(SELF_GET, payload={"ok": False, "description": "Invalid token"})
                 with pytest.raises(APIError) as exc_info:
                     await session.get("/self/get")
 
@@ -113,11 +107,7 @@ class TestErrorResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    status=400,
-                    payload={"ok": False, "description": "Bad request"},
-                )
+                m.get(SELF_GET, status=400, payload={"ok": False, "description": "Bad request"})
                 with pytest.raises(APIError) as exc_info:
                     await session.get("/self/get")
 
@@ -130,11 +120,7 @@ class TestErrorResponses:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    status=500,
-                    payload={"ok": False, "description": "Internal error"},
-                )
+                m.get(SELF_GET, status=500, payload={"ok": False, "description": "Internal error"})
                 with pytest.raises(ServerError) as exc_info:
                     await session.get("/self/get")
 
@@ -153,9 +139,9 @@ class TestRetryBehaviour:
         ) as session:
             with aioresponses() as m:
                 # First two attempts fail with 500, third succeeds
-                m.get(f"{FULL_URL}/self/get", status=500, payload={"ok": False, "description": "err"})
-                m.get(f"{FULL_URL}/self/get", status=500, payload={"ok": False, "description": "err"})
-                m.get(f"{FULL_URL}/self/get", payload={"ok": True, "data": "ok"})
+                m.get(SELF_GET, status=500, payload={"ok": False, "description": "err"})
+                m.get(SELF_GET, status=500, payload={"ok": False, "description": "err"})
+                m.get(SELF_GET, payload={"ok": True, "data": "ok"})
 
                 result = await session.get("/self/get")
 
@@ -168,8 +154,8 @@ class TestRetryBehaviour:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(f"{FULL_URL}/self/get", exception=asyncio.TimeoutError())
-                m.get(f"{FULL_URL}/self/get", payload={"ok": True})
+                m.get(SELF_GET, exception=asyncio.TimeoutError())
+                m.get(SELF_GET, payload={"ok": True})
 
                 result = await session.get("/self/get")
 
@@ -184,11 +170,8 @@ class TestRetryBehaviour:
             BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
         ) as session:
             with aioresponses() as m:
-                m.get(
-                    f"{FULL_URL}/self/get",
-                    exception=aiohttp.ClientConnectionError("Connection refused"),
-                )
-                m.get(f"{FULL_URL}/self/get", payload={"ok": True})
+                m.get(SELF_GET, exception=aiohttp.ClientConnectionError("Connection refused"))
+                m.get(SELF_GET, payload={"ok": True})
 
                 result = await session.get("/self/get")
 
@@ -202,11 +185,7 @@ class TestRetryBehaviour:
         ) as session:
             with aioresponses() as m:
                 for _ in range(3):
-                    m.get(
-                        f"{FULL_URL}/self/get",
-                        status=500,
-                        payload={"ok": False, "description": "down"},
-                    )
+                    m.get(SELF_GET, status=500, payload={"ok": False, "description": "down"})
 
                 with pytest.raises(ServerError):
                     await session.get("/self/get")
