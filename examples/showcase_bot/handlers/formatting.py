@@ -35,7 +35,7 @@ def register_formatting_handlers(dp: Dispatcher) -> None:
     async def show_formatting(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Демо форматирования\n\nВыберите режим форматирования:",
+            "Оформление текста\n\nСравните три способа форматирования сообщений.\nВыберите режим:",
             formatting_menu_kb(),
         )
 

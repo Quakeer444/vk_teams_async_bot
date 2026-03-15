@@ -219,3 +219,7 @@ ENV/
 CL*
 !vk_teams_async_bot/client/
 .playwright*
+.ag*
+.cl*
+.pytest_cache/
+docs/

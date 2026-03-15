@@ -37,7 +37,7 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
     async def show_chat_ops(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Операции с чатом\n\nВыберите операцию:",
+            "Действия в чате\n\nВыберите, что хотите проверить:",
             chat_ops_menu_kb(),
         )
 

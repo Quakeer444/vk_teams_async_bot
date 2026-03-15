@@ -47,9 +47,16 @@ def register_di_handlers(dp: Dispatcher) -> None:
     async def show_di(event: CallbackQueryEvent, bot: Bot):
         await bot.answer_callback_query(query_id=event.query_id)
         text = (
-            "Демо внедрения зависимостей\n\n"
-            "DI разрешается автоматически по аннотациям типов в сигнатуре обработчика.\n"
-            "Выберите тип зависимости для теста:"
+            "Dependency Injection (DI)\n\n"
+            "Бот автоматически подставляет нужные объекты в обработчик "
+            "по аннотации типа параметра. Достаточно указать тип -- "
+            "фреймворк сам найдет и вызовет нужную функцию.\n\n"
+            "3 вида зависимостей:\n"
+            "-- Синхронная (def -> T) -- для легких вещей без I/O: конфиги, настройки\n"
+            "-- Асинхронная (async def -> T) -- когда нужен await: БД, кэш, внешние API\n"
+            "-- Генератор (async yield T) -- ресурс с очисткой: "
+            "сессии, подключения, блокировки (teardown гарантирован)\n\n"
+            "Выберите пример:"
         )
         if event.message:
             await bot.edit_text(
@@ -70,7 +77,13 @@ def register_di_handlers(dp: Dispatcher) -> None:
         await bot.answer_callback_query(query_id=event.query_id)
         await bot.send_text(
             chat_id=event.chat.chat_id,
-            text=f"Результат синхронного DI:\n\nПриложение: {config.app_name}\nВерсия: {config.version}",
+            text=(
+                f"Синхронная зависимость (def -> T)\n\n"
+                f"get_config() вызвана автоматически, "
+                f"результат передан в параметр config: AppConfig.\n\n"
+                f"Приложение: {config.app_name}\n"
+                f"Версия: {config.version}"
+            ),
             inline_keyboard_markup=di_menu_kb(),
         )
 
@@ -79,7 +92,12 @@ def register_di_handlers(dp: Dispatcher) -> None:
         await bot.answer_callback_query(query_id=event.query_id)
         await bot.send_text(
             chat_id=event.chat.chat_id,
-            text=f"Результат асинхронного DI:\n\nВремя сервера: {timestamp.isoformat()}",
+            text=(
+                f"Асинхронная зависимость (async def -> T)\n\n"
+                f"await get_timestamp() вызвана автоматически, "
+                f"результат передан в параметр timestamp: datetime.\n\n"
+                f"Время сервера: {timestamp.isoformat()}"
+            ),
             inline_keyboard_markup=di_menu_kb(),
         )
 
@@ -94,6 +112,11 @@ def register_di_handlers(dp: Dispatcher) -> None:
             ip_info = f"Ошибка: {e}"
         await bot.send_text(
             chat_id=event.chat.chat_id,
-            text=f"Результат генератор-DI:\n\nIP бота: {ip_info}",
+            text=(
+                f"Генератор-зависимость (async yield T)\n\n"
+                f"HTTP-сессия создана до обработчика и закрыта после. "
+                f"Очистка гарантирована даже при ошибке.\n\n"
+                f"IP бота: {ip_info}"
+            ),
             inline_keyboard_markup=di_menu_kb(),
         )

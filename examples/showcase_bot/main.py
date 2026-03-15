@@ -88,7 +88,12 @@ async def main() -> None:
         async def cmd_start(event: NewMessageEvent, bot: Bot):
             await bot.send_text(
                 chat_id=event.chat.chat_id,
-                text="Showcase Bot\n\nЭтот бот демонстрирует все возможности vk_teams_async_bot.\nВыберите раздел:",
+                text=(
+                    "Демо-бот vk_teams_async_bot\n\n"
+                    "Здесь собраны примеры кнопок, меню, оформления текста, пошаговых "
+                    "сценариев, файлов, событий и фильтров.\n"
+                    "Выберите пример и сразу попробуйте его в чате."
+                ),
                 inline_keyboard_markup=main_menu_kb(),
             )
 
@@ -118,7 +123,7 @@ async def main() -> None:
                     "Доступные команды:\n"
                     "/start -- главное меню\n"
                     "/help -- это сообщение\n"
-                    "/cancel -- выход из любого мастера\n"
+                    "/cancel -- выход из любого пошагового сценария\n"
                     "/demo -- демо команда фильтров\n\n"
                     "Используйте кнопки меню для изучения всех возможностей."
                 ),
@@ -133,13 +138,23 @@ async def main() -> None:
                 await bot.edit_text(
                     chat_id=event.chat.chat_id,
                     msg_id=event.message.msg_id,
-                    text="Showcase Bot\n\nВыберите раздел:",
+                    text=(
+                        "Демо-бот vk_teams_async_bot\n\n"
+                        "Здесь собраны примеры кнопок, меню, оформления текста, пошаговых "
+                        "сценариев, файлов, событий и фильтров.\n"
+                        "Выберите пример и сразу попробуйте его в чате."
+                    ),
                     inline_keyboard_markup=main_menu_kb(),
                 )
             else:
                 await bot.send_text(
                     chat_id=event.chat.chat_id,
-                    text="Showcase Bot\n\nВыберите раздел:",
+                    text=(
+                        "Демо-бот vk_teams_async_bot\n\n"
+                        "Здесь собраны примеры кнопок, меню, оформления текста, пошаговых "
+                        "сценариев, файлов, событий и фильтров.\n"
+                        "Выберите пример и сразу попробуйте его в чате."
+                    ),
                     inline_keyboard_markup=main_menu_kb(),
                 )
 

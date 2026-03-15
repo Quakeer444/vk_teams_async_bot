@@ -12,7 +12,10 @@ from ..states import MultiSelectStates
 
 
 def _build_select_text(selected: set[str]) -> str:
-    text = "Множественный выбор (с пагинацией)\n\nВыберите любимые языки:"
+    text = (
+        "Выбор нескольких языков с пагинацией\n\n"
+        "Отметьте нужные языки. Если список не помещается, переключайте страницы."
+    )
     if selected:
         text += f"\nВыбрано: {', '.join(sorted(selected))}"
     return text

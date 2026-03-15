@@ -35,8 +35,8 @@ def register_events_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:evt"))
     async def show_events(event: CallbackQueryEvent, bot: Bot):
         text = (
-            "Демо событий\n\n"
-            "Этот бот отслеживает следующие события:\n"
+            "События чата\n\n"
+            "Бот отслеживает такие события:\n"
             "- Редактирование сообщений\n"
             "- Удаление сообщений\n"
             "- Закрепление сообщений\n"

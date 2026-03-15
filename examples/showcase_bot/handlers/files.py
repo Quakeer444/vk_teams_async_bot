@@ -75,7 +75,7 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     async def show_files(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Демо файлов\n\nВыберите действие:",
+            "Отправка и получение файлов\n\nВыберите, что хотите проверить:",
             files_menu_kb(),
         )
 

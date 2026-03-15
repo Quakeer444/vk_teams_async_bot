@@ -91,9 +91,23 @@ class BaseHandler:
             if not hasattr(bot, "depends"):
                 continue
 
-            depend = [d for d in bot.depends if d == annotation]
-            if depend:
-                depends[key] = annotation
+            for dep_func in bot.depends:
+                ret = typing.get_type_hints(dep_func).get("return")
+                # For async generators, unwrap AsyncGenerator[X, Y] -> X
+                origin = typing.get_origin(ret)
+                if origin is not None:
+                    import collections.abc
+
+                    if origin in (
+                        collections.abc.AsyncGenerator,
+                        typing.AsyncGenerator,
+                    ):
+                        args = typing.get_args(ret)
+                        if args:
+                            ret = args[0]
+                if ret is annotation:
+                    depends[key] = dep_func
+                    break
 
         return depends
 

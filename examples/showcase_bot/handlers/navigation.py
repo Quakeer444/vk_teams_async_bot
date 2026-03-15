@@ -35,7 +35,12 @@ async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=Non
 def register_navigation_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:nav"))
     async def show_nav(event: CallbackQueryEvent, bot: Bot):
-        await safe_edit(event, bot, "Демо навигации -- Уровень 1\n\nВыберите раздел:", nav_level1_kb())
+        await safe_edit(
+            event,
+            bot,
+            "Многоуровневое меню\n\nЭто пример меню с несколькими уровнями вложенности.\nВыберите раздел:",
+            nav_level1_kb(),
+        )
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^nav:l1:"))
     async def nav_l1(event: CallbackQueryEvent, bot: Bot):
@@ -69,7 +74,12 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
 
     @dp.callback_query(CallbackDataFilter("nav:back:l1"))
     async def nav_back_l1(event: CallbackQueryEvent, bot: Bot):
-        await safe_edit(event, bot, "Демо навигации -- Уровень 1\n\nВыберите раздел:", nav_level1_kb())
+        await safe_edit(
+            event,
+            bot,
+            "Многоуровневое меню\n\nЭто пример меню с несколькими уровнями вложенности.\nВыберите раздел:",
+            nav_level1_kb(),
+        )
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^nav:back:l2:"))
     async def nav_back_l2(event: CallbackQueryEvent, bot: Bot):

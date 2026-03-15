@@ -32,7 +32,7 @@ def register_messages_handlers(dp: Dispatcher) -> None:
     async def show_messages(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Операции с сообщениями\n\nВыберите операцию для демонстрации:",
+            "Действия с сообщениями\n\nВыберите, что хотите показать на примере:",
             messages_menu_kb(),
         )
 

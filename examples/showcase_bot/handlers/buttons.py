@@ -30,9 +30,9 @@ def register_buttons_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:btn"))
     async def show_buttons(event: CallbackQueryEvent, bot: Bot):
         text = (
-            "Витрина кнопок\n\n"
-            "Ниже представлены все 3 варианта StyleKeyboard, URL-кнопка "
-            "и различные варианты компоновки (buttons_in_row)."
+            "Кнопки и стили\n\n"
+            "Здесь показаны три стиля кнопок, кнопка со ссылкой и несколько "
+            "вариантов расположения кнопок в сообщении."
         )
         await safe_edit(event, bot, text, buttons_showcase_kb())
 

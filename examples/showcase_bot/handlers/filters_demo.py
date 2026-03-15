@@ -45,7 +45,7 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     async def show_filters(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Демо фильтров\n\nВыберите категорию фильтров:",
+            "Фильтры сообщений\n\nВыберите, какие фильтры хотите посмотреть:",
             filters_menu_kb(),
         )
 
@@ -54,7 +54,7 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     async def show_part_filters(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
             event, bot,
-            "Фильтры по частям\n\nВыберите фильтр для теста. Вам нужно будет отправить соответствующий контент.",
+            "Фильтры по типу вложения\n\nВыберите фильтр для теста. После этого отправьте подходящий контент.",
             filter_parts_kb(),
         )
 

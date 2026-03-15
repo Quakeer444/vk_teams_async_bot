@@ -6,20 +6,20 @@ from vk_teams_async_bot import InlineKeyboardMarkup, KeyboardButton, StyleKeyboa
 def main_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(buttons_in_row=2)
     sections = [
-        ("Kнопки", "menu:btn"),
-        ("Навигация", "menu:nav"),
-        ("Форматирование", "menu:fmt"),
-        ("Мастер (кнопки)", "menu:wzb"),
-        ("Мастер (текст)", "menu:wzt"),
-        ("Мастер (смешанный)", "menu:wzm"),
-        ("Переключатели", "menu:tgl"),
-        ("Множественный выбор (с пагинацией)", "menu:msel"),
-        ("Файлы", "menu:file"),
-        ("События", "menu:evt"),
-        ("Операции с сообщениями", "menu:msg"),
-        ("Фильтры", "menu:flt"),
-        ("Операции с чатом", "menu:chat"),
-        ("Внедрение зависимостей", "menu:di"),
+        ("Кнопки и стили", "menu:btn"),
+        ("Многоуровневое меню", "menu:nav"),
+        ("Оформление текста", "menu:fmt"),
+        ("Заказ пиццы по кнопкам", "menu:wzb"),
+        ("Регистрация через сообщения", "menu:wzt"),
+        ("Регистрация на событие", "menu:wzm"),
+        ("Настройки с переключателями", "menu:tgl"),
+        ("Выбор нескольких языков с пагинацией", "menu:msel"),
+        ("Отправка и получение файлов", "menu:file"),
+        ("События чата", "menu:evt"),
+        ("Действия с сообщениями", "menu:msg"),
+        ("Фильтры сообщений", "menu:flt"),
+        ("Действия в чате", "menu:chat"),
+        ("Зависимости в обработчиках", "menu:di"),
     ]
     for text, cb in sections:
         kb.add(KeyboardButton(text=text, callback_data=cb, style=StyleKeyboard.PRIMARY))
@@ -113,9 +113,9 @@ def nav_level4_kb(section: str, item: str) -> InlineKeyboardMarkup:
 def formatting_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(buttons_in_row=1)
     kb.add(
-        KeyboardButton(text="Демо Format API", callback_data="fmt:api", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="Демо HTML", callback_data="fmt:html", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="Демо MarkdownV2", callback_data="fmt:md", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Format API", callback_data="fmt:api", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="HTML-разметка", callback_data="fmt:html", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="MarkdownV2-разметка", callback_data="fmt:md", style=StyleKeyboard.PRIMARY),
     )
     kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
     return kb
@@ -393,7 +393,7 @@ def messages_menu_kb() -> InlineKeyboardMarkup:
 def filters_menu_kb() -> InlineKeyboardMarkup:
     kb = InlineKeyboardMarkup(buttons_in_row=1)
     kb.add(
-        KeyboardButton(text="Фильтры по частям", callback_data="flt:parts", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Фильтры по типу вложения", callback_data="flt:parts", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="Текстовые фильтры", callback_data="flt:text", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="Составные фильтры", callback_data="flt:composite", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="Продвинутые фильтры", callback_data="flt:advanced", style=StyleKeyboard.PRIMARY),

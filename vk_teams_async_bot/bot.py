@@ -176,8 +176,11 @@ class Bot(
                 self._background_tasks.clear()
 
     def _handle_signal(self) -> None:
-        """Signal handler: set _running to False to stop the polling loop."""
-        logger.info("Received shutdown signal")
+        """Signal handler: first call stops polling gracefully, second forces exit."""
+        if not self._running:
+            logger.info("Forced shutdown")
+            raise SystemExit(1)
+        logger.info("Received shutdown signal, press Ctrl+C again to force exit")
         self._running = False
 
     async def _polling_loop(self, dispatcher: Dispatcher) -> None:

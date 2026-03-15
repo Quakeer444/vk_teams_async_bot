@@ -23,13 +23,13 @@ def register_toggle_handlers(dp: Dispatcher) -> None:
             await bot.edit_text(
                 chat_id=event.chat.chat_id,
                 msg_id=event.message.msg_id,
-                text="Переключатели\n\nНажмите на настройку для переключения ВКЛ/ВЫКЛ:",
+                text="Настройки с переключателями\n\nНажмите на параметр, чтобы включить или выключить его.",
                 inline_keyboard_markup=toggle_settings_kb(settings),
             )
         else:
             await bot.send_text(
                 chat_id=event.chat.chat_id,
-                text="Переключатели\n\nНажмите на настройку для переключения ВКЛ/ВЫКЛ:",
+                text="Настройки с переключателями\n\nНажмите на параметр, чтобы включить или выключить его.",
                 inline_keyboard_markup=toggle_settings_kb(settings),
             )
 
@@ -53,6 +53,6 @@ def register_toggle_handlers(dp: Dispatcher) -> None:
             await bot.edit_text(
                 chat_id=event.chat.chat_id,
                 msg_id=event.message.msg_id,
-                text="Переключатели\n\nНажмите на настройку для переключения ВКЛ/ВЫКЛ:",
+                text="Настройки с переключателями\n\nНажмите на параметр, чтобы включить или выключить его.",
                 inline_keyboard_markup=toggle_settings_kb(settings),
             )
