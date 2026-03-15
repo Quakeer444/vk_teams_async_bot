@@ -5,29 +5,9 @@ from __future__ import annotations
 from ..fsm.context import FSMContext
 from ..fsm.state import State
 from ..fsm.storage.base import BaseStorage
-from ..types.event import (
-    BaseEvent,
-    CallbackQueryEvent,
-    EditedMessageEvent,
-    NewMessageEvent,
-    PinnedMessageEvent,
-)
+from ..types.event import BaseEvent
+from ..utils import extract_chat_user
 from .base import FilterBase
-
-
-def _extract_chat_user(event: BaseEvent) -> tuple[str, str] | None:
-    """Extract (chat_id, user_id) from an event, or None if not possible.
-
-    Supports events that carry both a chat reference and a from_ user:
-    NewMessageEvent, EditedMessageEvent, CallbackQueryEvent, PinnedMessageEvent.
-    """
-    if isinstance(event, (NewMessageEvent, EditedMessageEvent, PinnedMessageEvent)):
-        return event.chat.chat_id, event.from_.user_id
-    if isinstance(event, CallbackQueryEvent):
-        if event.chat is None:
-            return None
-        return event.chat.chat_id, event.from_.user_id
-    return None
 
 
 class StateFilter(FilterBase):
@@ -38,7 +18,7 @@ class StateFilter(FilterBase):
     system (dispatcher) should call the async check() method instead.
     """
 
-    def __init__(self, state: State | str, storage: BaseStorage) -> None:
+    def __init__(self, state: State | str, storage: BaseStorage | None = None) -> None:
         self._state = state
         self._storage = storage
 
@@ -51,7 +31,9 @@ class StateFilter(FilterBase):
 
     async def check(self, event: BaseEvent) -> bool:
         """Async check: compare the user's current FSM state with the target."""
-        key = _extract_chat_user(event)
+        if self._storage is None:
+            return False
+        key = extract_chat_user(event)
         if key is None:
             return False
         ctx = FSMContext(storage=self._storage, key=key)

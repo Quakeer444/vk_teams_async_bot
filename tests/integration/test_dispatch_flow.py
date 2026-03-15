@@ -240,6 +240,38 @@ class TestDecoratorShortcuts:
         callback.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_command_decorator(self):
+        dp = Dispatcher()
+        callback = AsyncMock()
+
+        @dp.command("start")
+        async def handler(event, bot):
+            pass
+
+        assert len(dp.handlers) == 1
+
+        dp.handlers[0].callback = callback
+
+        event = _make_new_message_event(text="/start")
+        await dp.feed_event(event, FakeBot())
+        callback.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_command_decorator_does_not_match_wrong_command(self):
+        dp = Dispatcher()
+        callback = AsyncMock()
+
+        @dp.command("start")
+        async def handler(event, bot):
+            pass
+
+        dp.handlers[0].callback = callback
+
+        event = _make_new_message_event(text="/help")
+        await dp.feed_event(event, FakeBot())
+        callback.assert_not_awaited()
+
+    @pytest.mark.asyncio
     async def test_all_decorator_shortcuts_exist(self):
         dp = Dispatcher()
         assert hasattr(dp, "message")
@@ -250,6 +282,7 @@ class TestDecoratorShortcuts:
         assert hasattr(dp, "new_chat_members")
         assert hasattr(dp, "left_chat_members")
         assert hasattr(dp, "callback_query")
+        assert hasattr(dp, "command")
 
 
 # -- Middleware chain tests ----------------------------------------------------
@@ -514,6 +547,41 @@ class TestStatefulCallbackFlow:
 
 
 # -- Concurrent FSM tests -----------------------------------------------------
+
+
+class TestUserLockStability:
+    @pytest.mark.asyncio
+    async def test_concurrent_events_same_user_keep_lock(self):
+        """Lock for a user_key must not be deleted between events."""
+        storage = MemoryStorage()
+        dp = Dispatcher(storage=storage)
+        order = []
+
+        @dp.message()
+        async def handler(event, bot):
+            order.append(f"start:{event.text}")
+            await asyncio.sleep(0.01)
+            order.append(f"end:{event.text}")
+
+        bot = FakeBot()
+        e1 = _make_new_message_event(text="first", chat_id="c1", user_id="u1")
+        e2 = _make_new_message_event(text="second", chat_id="c1", user_id="u1")
+        e3 = _make_new_message_event(text="third", chat_id="c1", user_id="u1")
+
+        await asyncio.gather(
+            dp.feed_event(e1, bot),
+            dp.feed_event(e2, bot),
+            dp.feed_event(e3, bot),
+        )
+
+        # Events for same user must be serialized (not interleaved)
+        assert order == [
+            "start:first", "end:first",
+            "start:second", "end:second",
+            "start:third", "end:third",
+        ]
+        # Lock remains in the dict (not deleted after use)
+        assert ("c1", "u1") in dp._user_locks
 
 
 class TestFSMConcurrency:

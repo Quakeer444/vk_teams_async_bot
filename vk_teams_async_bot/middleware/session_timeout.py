@@ -48,7 +48,7 @@ class SessionTimeoutMiddleware(BaseMiddleware):
         event: Event,
         data: dict[str, Any],
     ) -> Any:
-        self._ensure_checker_running()
+        self._ensure_checker_running(data.get("bot"))
 
         # Update timestamp for the current user if FSM context is available
         fsm_context: FSMContext | None = data.get("fsm_context")
@@ -57,9 +57,12 @@ class SessionTimeoutMiddleware(BaseMiddleware):
 
         return await handler(event, data)
 
-    def _ensure_checker_running(self) -> None:
+    def _ensure_checker_running(self, bot: Any = None) -> None:
         if self._task is None or self._task.done():
             self._task = asyncio.create_task(self._checker_loop())
+            if bot is not None and hasattr(bot, "_background_tasks"):
+                bot._background_tasks.add(self._task)
+                self._task.add_done_callback(bot._background_tasks.discard)
 
     async def _checker_loop(self) -> None:
         while True:

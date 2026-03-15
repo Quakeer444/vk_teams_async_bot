@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import ssl as ssl_lib
 from typing import Any
 
 import aiohttp
@@ -10,6 +11,7 @@ from aiohttp import ClientSession, FormData
 from vk_teams_async_bot.errors import (
     APIError,
     NetworkError,
+    RateLimitError,
     ServerError,
     SessionError,
     TimeoutError,
@@ -41,16 +43,17 @@ class VKTeamsSession:
         base_path: str,
         bot_token: str,
         timeout: int = 30,
-        ssl: bool | None = None,
+        ssl: bool | ssl_lib.SSLContext | None = None,
         retry_policy: RetryPolicy | None = None,
     ) -> None:
         self._base_url = base_url
         self._base_path = base_path
         self._bot_token = bot_token
         self._timeout = timeout
-        self._ssl = ssl
+        self._ssl: bool | ssl_lib.SSLContext | None = ssl
         self._retry_policy = retry_policy or RetryPolicy()
         self._session: ClientSession | None = None
+        self._download_session: ClientSession | None = None
         self._session_lock = asyncio.Lock()
 
     # -- Context manager protocol ------------------------------------------
@@ -102,54 +105,56 @@ class VKTeamsSession:
         )
 
     async def close(self) -> None:
-        """Close the underlying aiohttp session."""
-        if self._session and not self._session.closed:
-            await self._session.close()
-            logger.debug("Session closed")
-        self._session = None
+        """Close the underlying aiohttp sessions."""
+        try:
+            if self._download_session and not self._download_session.closed:
+                await self._download_session.close()
+        finally:
+            self._download_session = None
+            if self._session and not self._session.closed:
+                await self._session.close()
+                logger.debug("Session closed")
+            self._session = None
 
     async def download(self, url: str) -> bytes:
         """Download a file from an arbitrary URL.
 
-        Uses the same SSL/connector settings and retry policy as API requests.
+        Uses a dedicated download session (no base_url, reused across calls).
+        Shares the same SSL/connector/timeout settings as API requests.
         Wraps errors into library exceptions (NetworkError, TimeoutError, etc.).
         """
-        connector = aiohttp.TCPConnector(ssl=self._ssl)
-        timeout = aiohttp.ClientTimeout(total=self._timeout)
+        session = await self._ensure_download_session()
         policy = self._retry_policy
         last_error: Exception | None = None
 
-        async with aiohttp.ClientSession(
-            timeout=timeout, connector=connector,
-        ) as session:
-            for attempt in range(1 + policy.max_retries):
-                try:
-                    async with session.get(url) as resp:
-                        if resp.status >= 500:
-                            raise ServerError(resp.status, f"Server error downloading {url}")
-                        if resp.status >= 400:
-                            raise APIError(resp.status, f"HTTP {resp.status} downloading {url}")
-                        return await resp.read()
-                except _RETRIABLE_ERRORS as exc:
-                    last_error = exc
-                    if attempt < policy.max_retries:
-                        await exponential_backoff_with_jitter(policy, attempt)
-                        continue
-                    break
-                except asyncio.TimeoutError as exc:
-                    last_error = TimeoutError(f"Download timed out: {url}")
-                    last_error.__cause__ = exc
-                    if attempt < policy.max_retries:
-                        await exponential_backoff_with_jitter(policy, attempt)
-                        continue
-                    break
-                except aiohttp.ClientError as exc:
-                    last_error = NetworkError(str(exc))
-                    last_error.__cause__ = exc
-                    if attempt < policy.max_retries:
-                        await exponential_backoff_with_jitter(policy, attempt)
-                        continue
-                    break
+        for attempt in range(1 + policy.max_retries):
+            try:
+                async with session.get(url) as resp:
+                    if resp.status >= 500:
+                        raise ServerError(resp.status, f"Server error downloading {url}")
+                    if resp.status >= 400:
+                        raise APIError(resp.status, f"HTTP {resp.status} downloading {url}")
+                    return await resp.read()
+            except _RETRIABLE_ERRORS as exc:
+                last_error = exc
+                if attempt < policy.max_retries:
+                    await exponential_backoff_with_jitter(policy, attempt)
+                    continue
+                break
+            except asyncio.TimeoutError as exc:
+                last_error = TimeoutError(f"Download timed out: {url}")
+                last_error.__cause__ = exc
+                if attempt < policy.max_retries:
+                    await exponential_backoff_with_jitter(policy, attempt)
+                    continue
+                break
+            except aiohttp.ClientError as exc:
+                last_error = NetworkError(str(exc))
+                last_error.__cause__ = exc
+                if attempt < policy.max_retries:
+                    await exponential_backoff_with_jitter(policy, attempt)
+                    continue
+                break
 
         if last_error is not None:
             raise last_error
@@ -180,6 +185,25 @@ class VKTeamsSession:
                 result.append((k, v))
         return result
 
+    def _make_connector(self) -> aiohttp.TCPConnector:
+        """Create a TCPConnector with the configured SSL settings."""
+        if self._ssl is not None:
+            return aiohttp.TCPConnector(ssl=self._ssl)
+        return aiohttp.TCPConnector()
+
+    async def _ensure_download_session(self) -> ClientSession:
+        """Return the download session (no base_url) or create a new one."""
+        if self._download_session is not None and not self._download_session.closed:
+            return self._download_session
+        async with self._session_lock:
+            if self._download_session is None or self._download_session.closed:
+                self._download_session = aiohttp.ClientSession(
+                    timeout=aiohttp.ClientTimeout(total=self._timeout),
+                    connector=self._make_connector(),
+                )
+                logger.debug("Download session created")
+            return self._download_session
+
     async def _ensure_session(self) -> ClientSession:
         """Return the existing session or create a new one (thread-safe)."""
         if self._session is not None and not self._session.closed:
@@ -189,7 +213,7 @@ class VKTeamsSession:
                 self._session = aiohttp.ClientSession(
                     base_url=self._base_url,
                     timeout=aiohttp.ClientTimeout(total=self._timeout),
-                    connector=aiohttp.TCPConnector(ssl=self._ssl),
+                    connector=self._make_connector(),
                 )
                 logger.debug("Session created: %s", self._session)
             return self._session
@@ -236,6 +260,11 @@ class VKTeamsSession:
         if status >= 500:
             description = body.get("description", f"Server error (HTTP {status})")
             raise ServerError(status, description)
+
+        # 429 -- rate limited
+        if status == 429:
+            description = body.get("description", "Rate limited (HTTP 429)")
+            raise RateLimitError(status, description)
 
         # 4xx -- client / API error
         if status >= 400:

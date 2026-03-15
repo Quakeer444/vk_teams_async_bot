@@ -13,7 +13,7 @@ except ImportError:
 
 from vk_teams_async_bot.client.retry import RetryPolicy
 from vk_teams_async_bot.client.session import VKTeamsSession
-from vk_teams_async_bot.errors import APIError, NetworkError, ServerError, TimeoutError
+from vk_teams_async_bot.errors import APIError, NetworkError, RateLimitError, ServerError, TimeoutError
 
 BASE_URL = "https://api.example.com"
 BASE_PATH = "/bot/v1"
@@ -125,6 +125,20 @@ class TestErrorResponses:
                     await session.get("/self/get")
 
                 assert exc_info.value.status_code == 500
+
+    @pytest.mark.asyncio
+    async def test_429_raises_rate_limit_error(self, no_retry_policy: RetryPolicy) -> None:
+        """HTTP 429 raises RateLimitError."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.get(SELF_GET, status=429, payload={"ok": False, "description": "Too many requests"})
+                with pytest.raises(RateLimitError) as exc_info:
+                    await session.get("/self/get")
+
+                assert exc_info.value.status_code == 429
+                assert "Too many requests" in exc_info.value.description
 
 
 # -- Retry behaviour -------------------------------------------------------
@@ -253,27 +267,20 @@ class TestSessionDownload:
         assert result == b"file content"
 
     @pytest.mark.asyncio
-    async def test_download_uses_ssl_settings(self) -> None:
-        """Verify TCPConnector is created with ssl=self._ssl."""
+    async def test_download_reuses_session(self, no_retry_policy: RetryPolicy) -> None:
+        """download() reuses a dedicated download session across calls."""
         session = VKTeamsSession(
-            BASE_URL, BASE_PATH, TOKEN, ssl=False,
-            retry_policy=RetryPolicy(max_retries=0),
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy,
         )
-        original_tcp = __import__("aiohttp").TCPConnector
-        created_connectors = []
-
-        class SpyTCPConnector(original_tcp):
-            def __init__(self, **kwargs):
-                created_connectors.append(kwargs)
-                super().__init__(**kwargs)
-
-        with patch("vk_teams_async_bot.client.session.aiohttp.TCPConnector", SpyTCPConnector):
-            with aioresponses() as m:
-                m.get(DOWNLOAD_URL_RE, body=b"data")
-                await session.download(DOWNLOAD_URL)
-
-        assert len(created_connectors) == 1
-        assert created_connectors[0]["ssl"] is False
+        with aioresponses() as m:
+            m.get(DOWNLOAD_URL_RE, body=b"first")
+            m.get(DOWNLOAD_URL_RE, body=b"second")
+            await session.download(DOWNLOAD_URL)
+            dl_session = session._download_session
+            await session.download(DOWNLOAD_URL)
+            # Same session object reused for second download
+            assert session._download_session is dl_session
+        await session.close()
 
     @pytest.mark.asyncio
     async def test_download_retries_on_server_error(self, fast_retry_policy: RetryPolicy) -> None:

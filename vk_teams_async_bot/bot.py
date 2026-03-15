@@ -78,7 +78,7 @@ class Bot(
         self._shutdown_timeout = shutdown_timeout
         self._handler_semaphore = asyncio.Semaphore(max_concurrent_handlers)
 
-        self.depends: list = []
+        self.depends: list[Callable[..., Any]] = []
 
     # -- Context manager protocol ----------------------------------------------
 
@@ -185,14 +185,14 @@ class Bot(
             self._running = False
             logger.info("Bot polling stopped")
 
-            # Run shutdown hooks
+            await self._drain_tasks()
+
+            # Run shutdown hooks after handlers have finished
             for hook in self._on_shutdown_hooks:
                 try:
                     await hook(self)
                 except Exception:
                     logger.exception("Error in shutdown hook")
-
-            await self._drain_tasks()
 
     def _handle_signal(self) -> None:
         """Signal handler: first call stops polling gracefully, second forces exit."""
@@ -238,7 +238,8 @@ class Bot(
         self, event: BaseEvent | RawUnknownEvent
     ) -> None:
         """Track the last event ID for long-polling offset."""
-        self.last_event_id = event.event_id
+        if event.event_id > self.last_event_id:
+            self.last_event_id = event.event_id
 
     def _task_done(self, task: asyncio.Task) -> None:
         """Callback for completed dispatch tasks."""

@@ -42,7 +42,3 @@ class EventParsingError(VKTeamsError):
     def __init__(self, message: str, raw_data: dict | None = None) -> None:
         self.raw_data = raw_data
         super().__init__(message)
-
-
-# Legacy alias for existing code until migration is complete
-ResponseStatus500orHigherError = ServerError

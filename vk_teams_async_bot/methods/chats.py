@@ -23,7 +23,7 @@ from vk_teams_async_bot.types.response import (
 
 from .base import BaseMethods
 
-_chat_info_adapter = TypeAdapter(ChatInfoResponse)
+_chat_info_adapter: TypeAdapter[ChatInfoResponse] = TypeAdapter(ChatInfoResponse)
 
 
 def _serialize_members(members: list[str]) -> str:

@@ -6,7 +6,6 @@ from vk_teams_async_bot.errors import (
     NetworkError,
     PollingError,
     RateLimitError,
-    ResponseStatus500orHigherError,
     ServerError,
     SessionError,
     TimeoutError,
@@ -69,9 +68,3 @@ class TestEventParsingError:
         assert err.raw_data is None
 
 
-class TestLegacyAlias:
-    def test_legacy_alias(self):
-        assert ResponseStatus500orHigherError is ServerError
-        err = ResponseStatus500orHigherError(500, "Server error")
-        assert isinstance(err, ServerError)
-        assert isinstance(err, APIError)

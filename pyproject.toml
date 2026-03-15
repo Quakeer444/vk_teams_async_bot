@@ -46,10 +46,6 @@ python-dotenv = "^1.2.2"
 line-length = 88
 target-version = ['py311']
 
-[[tool.mypy.overrides]]
-module = "aiofiles.*"
-ignore_missing_imports = true
-
 [tool.isort]
 profile = "black"
 multi_line_output = 3

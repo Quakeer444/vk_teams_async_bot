@@ -7,6 +7,7 @@ import logging
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from .filters.base import FilterBase
+from .filters.message import CommandFilter
 from .filters.state import StateFilter
 from .fsm.context import FSMContext
 from .fsm.storage.base import BaseStorage
@@ -22,28 +23,14 @@ from .middleware.base import BaseMiddleware
 from .middleware.manager import MiddlewareManager
 from .types.event import (
     BaseEvent,
-    CallbackQueryEvent,
-    EditedMessageEvent,
-    NewMessageEvent,
-    PinnedMessageEvent,
     RawUnknownEvent,
 )
+from .utils import extract_chat_user
 
 if TYPE_CHECKING:
     from .bot import Bot
 
 logger = logging.getLogger(__name__)
-
-
-def _extract_chat_user(event: BaseEvent | RawUnknownEvent) -> tuple[str, str] | None:
-    """Extract (chat_id, user_id) from an event for FSM context."""
-    if isinstance(event, (NewMessageEvent, EditedMessageEvent, PinnedMessageEvent)):
-        return event.chat.chat_id, event.from_.user_id
-    if isinstance(event, CallbackQueryEvent):
-        if event.chat is None:
-            return None
-        return event.chat.chat_id, event.from_.user_id
-    return None
 
 
 class Dispatcher:
@@ -209,6 +196,21 @@ class Dispatcher:
 
         return decorator
 
+    def command(
+        self,
+        cmd: str,
+        *filters: FilterBase,
+    ) -> Callable:
+        """Convenience decorator for command handlers.
+
+        Equivalent to ``@dp.message(CommandFilter(cmd), *filters)``::
+
+            @dp.command("start")
+            async def on_start(event, bot):
+                await bot.send_text(event.chat.chat_id, "Hello!")
+        """
+        return self.message(CommandFilter(cmd), *filters)
+
     # -- Event processing ------------------------------------------------------
 
     async def feed_event(self, event: BaseEvent | RawUnknownEvent, bot: Bot) -> None:
@@ -228,7 +230,7 @@ class Dispatcher:
         # Inject FSMContext if storage is configured
         user_key = None
         if self._storage is not None:
-            user_key = _extract_chat_user(event)
+            user_key = extract_chat_user(event)
             if user_key is not None:
                 data["fsm_context"] = FSMContext(
                     storage=self._storage, key=user_key
@@ -240,8 +242,6 @@ class Dispatcher:
             lock = self._user_locks.setdefault(user_key, asyncio.Lock())
             async with lock:
                 await wrapped(event, data)
-            if not lock.locked() and user_key in self._user_locks:
-                self._user_locks.pop(user_key, None)
         else:
             await wrapped(event, data)
 
@@ -251,6 +251,7 @@ class Dispatcher:
         data: dict[str, Any],
     ) -> None:
         """Find the first matching handler and execute it."""
+        assert isinstance(event, BaseEvent)  # RawUnknownEvent filtered in feed_event
         bot = data["bot"]
 
         for handler in self.handlers:
