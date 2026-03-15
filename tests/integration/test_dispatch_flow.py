@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 from unittest.mock import AsyncMock
 
@@ -95,7 +96,6 @@ class FakeBot:
 
     def __init__(self):
         self.depends: list = []
-        self._fsm_context: Any = None
 
 
 # -- Dispatch flow tests -------------------------------------------------------
@@ -362,9 +362,8 @@ class TestFSMContextInjection:
             waiting = State()
 
         @dp.message(CommandFilter("start"))
-        async def start_handler(event, bot):
-            ctx = bot._fsm_context
-            await ctx.set_state(MyStates.waiting)
+        async def start_handler(event, bot, fsm_context):
+            await fsm_context.set_state(MyStates.waiting)
 
         @dp.message()
         async def fallback(event, bot):
@@ -409,9 +408,8 @@ class TestFSMContextInjection:
             active = State()
 
         @dp.message()
-        async def handler(event, bot):
-            ctx = bot._fsm_context
-            await ctx.set_state(MyStates.active)
+        async def handler(event, bot, fsm_context):
+            await fsm_context.set_state(MyStates.active)
 
         bot = FakeBot()
 
@@ -469,9 +467,8 @@ class TestStatefulCallbackFlow:
             waiting_callback = State()
 
         @dp.message(CommandFilter("start"))
-        async def set_state(event, bot):
-            ctx = bot._fsm_context
-            await ctx.set_state(Flow.waiting_callback)
+        async def set_state(event, bot, fsm_context):
+            await fsm_context.set_state(Flow.waiting_callback)
 
         callback_received = []
 
@@ -514,3 +511,79 @@ class TestStatefulCallbackFlow:
         await dp.feed_event(cb_event, bot)
 
         assert len(callback_received) == 0
+
+
+# -- Concurrent FSM tests -----------------------------------------------------
+
+
+class TestFSMConcurrency:
+    @pytest.mark.asyncio
+    async def test_fsm_concurrent_different_users_no_bleed(self):
+        """Prove cross-user state bleed is gone using forced interleaving."""
+        storage = MemoryStorage()
+        dp = Dispatcher(storage=storage)
+
+        entered = asyncio.Event()
+        proceed = asyncio.Event()
+
+        class States(StatesGroup):
+            active = State()
+
+        @dp.message()
+        async def handler(event, bot, fsm_context):
+            key = (event.chat.chat_id, event.from_.user_id)
+            if key == ("chat1", "user1"):
+                entered.set()
+                await proceed.wait()
+            else:
+                await entered.wait()
+                proceed.set()
+            await fsm_context.set_state(States.active)
+
+        bot = FakeBot()
+        e1 = _make_new_message_event(chat_id="chat1", user_id="user1")
+        e2 = _make_new_message_event(chat_id="chat2", user_id="user2")
+
+        await asyncio.gather(
+            dp.feed_event(e1, bot),
+            dp.feed_event(e2, bot),
+        )
+
+        assert await storage.get_state(("chat1", "user1")) == States.active.state
+        assert await storage.get_state(("chat2", "user2")) == States.active.state
+
+    @pytest.mark.asyncio
+    async def test_fsm_per_user_serialization(self):
+        """Prove per-user lock serializes events for same (chat, user)."""
+        storage = MemoryStorage()
+        dp = Dispatcher(storage=storage)
+        order = []
+
+        class States(StatesGroup):
+            waiting_name = State()
+
+        @dp.message(CommandFilter("start"))
+        async def start_handler(event, bot, fsm_context):
+            order.append("start_begin")
+            await fsm_context.set_state(States.waiting_name)
+            await asyncio.sleep(0.01)
+            order.append("start_end")
+
+        @dp.message(StateFilter(States.waiting_name, storage=storage))
+        async def name_handler(event, bot, fsm_context):
+            order.append("name")
+
+        @dp.message()
+        async def fallback(event, bot):
+            order.append("fallback")
+
+        bot = FakeBot()
+        e1 = _make_new_message_event(text="/start", chat_id="c1", user_id="u1")
+        e2 = _make_new_message_event(text="John", chat_id="c1", user_id="u1")
+
+        await asyncio.gather(
+            dp.feed_event(e1, bot),
+            dp.feed_event(e2, bot),
+        )
+
+        assert order == ["start_begin", "start_end", "name"]

@@ -149,7 +149,7 @@ class TestSendText:
         )
 
         call_kwargs = msg_mixin._session.get.call_args[1]
-        assert call_kwargs["replyMsgId"] == json.dumps([1, 2])
+        assert call_kwargs["replyMsgId"] == [1, 2]
         assert call_kwargs["inlineKeyboardMarkup"] == "[[]]"
         assert call_kwargs["parseMode"] == "HTML"
         assert isinstance(result, MessageResponse)
@@ -163,7 +163,7 @@ class TestSendText:
         )
 
         call_kwargs = msg_mixin._session.get.call_args[1]
-        assert call_kwargs["replyMsgId"] == json.dumps([5])
+        assert call_kwargs["replyMsgId"] == [5]
         assert isinstance(result, MessageResponse)
 
     @pytest.mark.asyncio
@@ -179,7 +179,7 @@ class TestSendText:
 
         call_kwargs = msg_mixin._session.get.call_args[1]
         assert call_kwargs["forwardChatId"] == "other_chat"
-        assert call_kwargs["forwardMsgId"] == json.dumps([10])
+        assert call_kwargs["forwardMsgId"] == [10]
         assert isinstance(result, MessageResponse)
 
     @pytest.mark.asyncio
@@ -343,7 +343,7 @@ class TestSendFile:
         call_kwargs = msg_mixin._session.get.call_args[1]
         assert call_kwargs["fileId"] == "fid"
         assert call_kwargs["caption"] == "cap"
-        assert call_kwargs["replyMsgId"] == json.dumps([1])
+        assert call_kwargs["replyMsgId"] == [1]
         assert call_kwargs["parseMode"] == "MarkdownV2"
         assert isinstance(result, FileUploadResponse)
 
@@ -550,47 +550,24 @@ class TestAnswerCallbackQuery:
 class TestDownloadFile:
     @pytest.mark.asyncio
     async def test_returns_bytes(self, msg_mixin):
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status = MagicMock()
-        mock_resp.read = AsyncMock(return_value=b"file content bytes")
-        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
-        mock_resp.__aexit__ = AsyncMock(return_value=False)
+        msg_mixin._session.download = AsyncMock(return_value=b"file content bytes")
 
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_resp
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("aiohttp.ClientSession", return_value=mock_session):
-            result = await msg_mixin.download_file("https://files.example.com/f1")
+        result = await msg_mixin.download_file("https://files.example.com/f1")
 
         assert result == b"file content bytes"
-        mock_session.get.assert_called_once_with(
+        msg_mixin._session.download.assert_awaited_once_with(
             "https://files.example.com/f1"
         )
 
     @pytest.mark.asyncio
     async def test_raises_on_http_error(self, msg_mixin):
-        import aiohttp
+        from vk_teams_async_bot.errors import APIError
 
-        mock_resp = MagicMock()
-        mock_resp.raise_for_status.side_effect = aiohttp.ClientResponseError(
-            request_info=MagicMock(),
-            history=(),
-            status=404,
-            message="Not Found",
+        msg_mixin._session.download = AsyncMock(
+            side_effect=APIError(404, "HTTP 404 downloading https://files.example.com/f1")
         )
-        mock_resp.__aenter__ = AsyncMock(return_value=mock_resp)
-        mock_resp.__aexit__ = AsyncMock(return_value=False)
-
-        mock_session = MagicMock()
-        mock_session.get.return_value = mock_resp
-        mock_session.__aenter__ = AsyncMock(return_value=mock_session)
-        mock_session.__aexit__ = AsyncMock(return_value=False)
-
-        with patch("aiohttp.ClientSession", return_value=mock_session):
-            with pytest.raises(aiohttp.ClientResponseError):
-                await msg_mixin.download_file("https://files.example.com/f1")
+        with pytest.raises(APIError):
+            await msg_mixin.download_file("https://files.example.com/f1")
 
 
 # ===================================================================

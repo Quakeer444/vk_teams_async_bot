@@ -4,6 +4,9 @@
 # The DI system relies on annotations being actual function objects,
 # not lazy strings. See examples/depends.py for the usage pattern.
 
+from typing import Annotated
+
+import aiohttp
 import pytest
 
 from vk_teams_async_bot.filters.base import FilterBase
@@ -395,6 +398,25 @@ class TestHandlerDI:
         h = BaseHandler(callback=cb)
         await h.handle(_new_message(), object())
         assert calls == ["ok"]
+
+    @pytest.mark.asyncio
+    async def test_callback_with_annotated_dependency(self):
+        """Verify Annotated[Type, provider] DI pattern works."""
+        async def get_session() -> aiohttp.ClientSession:
+            return aiohttp.ClientSession()
+
+        async def cb(
+            event,
+            bot,
+            session: Annotated[aiohttp.ClientSession, get_session],
+        ):
+            pass
+
+        handler = MessageHandler(callback=cb)
+        bot = _MockBot(depends=[get_session])
+        deps = await handler.check_signature(bot)
+        assert "session" in deps
+        assert deps["session"] is get_session
 
 
 class _MockBot:

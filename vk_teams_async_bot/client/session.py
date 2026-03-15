@@ -107,6 +107,53 @@ class VKTeamsSession:
             logger.debug("Session closed")
         self._session = None
 
+    async def download(self, url: str) -> bytes:
+        """Download a file from an arbitrary URL.
+
+        Uses the same SSL/connector settings and retry policy as API requests.
+        Wraps errors into library exceptions (NetworkError, TimeoutError, etc.).
+        """
+        connector = aiohttp.TCPConnector(ssl=self._ssl)
+        timeout = aiohttp.ClientTimeout(total=self._timeout)
+        policy = self._retry_policy
+        last_error: Exception | None = None
+
+        async with aiohttp.ClientSession(
+            timeout=timeout, connector=connector,
+        ) as session:
+            for attempt in range(1 + policy.max_retries):
+                try:
+                    async with session.get(url) as resp:
+                        if resp.status >= 500:
+                            raise ServerError(resp.status, f"Server error downloading {url}")
+                        if resp.status >= 400:
+                            raise APIError(resp.status, f"HTTP {resp.status} downloading {url}")
+                        return await resp.read()
+                except _RETRIABLE_ERRORS as exc:
+                    last_error = exc
+                    if attempt < policy.max_retries:
+                        await exponential_backoff_with_jitter(policy, attempt)
+                        continue
+                    break
+                except asyncio.TimeoutError as exc:
+                    last_error = TimeoutError(f"Download timed out: {url}")
+                    last_error.__cause__ = exc
+                    if attempt < policy.max_retries:
+                        await exponential_backoff_with_jitter(policy, attempt)
+                        continue
+                    break
+                except aiohttp.ClientError as exc:
+                    last_error = NetworkError(str(exc))
+                    last_error.__cause__ = exc
+                    if attempt < policy.max_retries:
+                        await exponential_backoff_with_jitter(policy, attempt)
+                        continue
+                    break
+
+        if last_error is not None:
+            raise last_error
+        raise SessionError("Download failed with no error captured")  # pragma: no cover
+
     # -- Internal helpers --------------------------------------------------
 
     def _build_params(

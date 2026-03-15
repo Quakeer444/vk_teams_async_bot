@@ -74,8 +74,6 @@ class Bot(
         self._on_startup_hooks: list[LifecycleHook] = []
         self._on_shutdown_hooks: list[LifecycleHook] = []
 
-        # Temporary storage for FSMContext injection via handler DI
-        self._fsm_context: Any = None
         self.depends: list = []
 
     # -- Context manager protocol ----------------------------------------------

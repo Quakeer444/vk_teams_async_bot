@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
@@ -68,6 +69,7 @@ class Dispatcher:
         self.handlers: list[BaseHandler] = []
         self.middleware = MiddlewareManager()
         self._storage = storage
+        self._user_locks: dict[tuple[str, str], asyncio.Lock] = {}
 
     def add_middleware(self, mw: BaseMiddleware) -> None:
         """Register a middleware instance."""
@@ -224,16 +226,22 @@ class Dispatcher:
         }
 
         # Inject FSMContext if storage is configured
+        user_key = None
         if self._storage is not None:
-            key = _extract_chat_user(event)
-            if key is not None:
+            user_key = _extract_chat_user(event)
+            if user_key is not None:
                 data["fsm_context"] = FSMContext(
-                    storage=self._storage, key=key
+                    storage=self._storage, key=user_key
                 )
 
         # Build the handler chain wrapped by middlewares
         wrapped = self.middleware.wrap(self._dispatch_to_handler)
-        await wrapped(event, data)
+        if user_key is not None:
+            lock = self._user_locks.setdefault(user_key, asyncio.Lock())
+            async with lock:
+                await wrapped(event, data)
+        else:
+            await wrapped(event, data)
 
     async def _dispatch_to_handler(
         self,
@@ -254,11 +262,6 @@ class Dispatcher:
             else:
                 if not handler.check(event):
                     continue
-
-            # Inject FSMContext into handler kwargs if the callback wants it
-            fsm_context = data.get("fsm_context")
-            if fsm_context is not None:
-                bot._fsm_context = fsm_context
 
             await handler.handle(event, bot, extra_kwargs=data)
             return

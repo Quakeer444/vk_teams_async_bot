@@ -92,6 +92,12 @@ class BaseHandler:
                 continue
 
             for dep_func in bot.depends:
+                # Direct match: annotation IS the dependency function itself
+                if annotation is dep_func:
+                    depends[key] = dep_func
+                    break
+
+                # Fallback: match by return type annotation
                 ret = typing.get_type_hints(dep_func).get("return")
                 # For async generators, unwrap AsyncGenerator[X, Y] -> X
                 origin = typing.get_origin(ret)
@@ -105,7 +111,7 @@ class BaseHandler:
                         args = typing.get_args(ret)
                         if args:
                             ret = args[0]
-                if ret is annotation:
+                if ret is not None and ret is annotation:
                     depends[key] = dep_func
                     break
 

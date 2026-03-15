@@ -172,10 +172,9 @@ class Form(StatesGroup):
 dp = Dispatcher(storage=MemoryStorage())
 
 @dp.message(StateFilter(Form.waiting_name))
-async def process_name(event: NewMessageEvent, bot: Bot):
-    fsm = bot._fsm_context
-    await fsm.set_state(Form.waiting_age)
-    await fsm.update_data(name=event.text)
+async def process_name(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+    await fsm_context.set_state(Form.waiting_age)
+    await fsm_context.update_data(name=event.text)
 ```
 
 Key difference: FSM now keys on `(chat_id, user_id)` instead of just `user_id`, so the same user can have different states in different chats.

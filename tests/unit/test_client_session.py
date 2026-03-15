@@ -214,3 +214,112 @@ class TestContextManager:
             pass
         # Second close should be safe
         await session.close()
+
+
+# -- _build_params ---------------------------------------------------------
+
+
+class TestBuildParams:
+    def test_build_params_expands_list_to_repeated_query_params(self):
+        """Verify _build_params correctly expands lists into repeated tuples."""
+        session = VKTeamsSession(
+            base_url="https://example.com", base_path="/bot/v1",
+            bot_token="tok",
+        )
+        result = session._build_params({"chatId": "c1", "msgId": [1, 2, 3]})
+        assert isinstance(result, list)
+        assert ("msgId", 1) in result
+        assert ("msgId", 2) in result
+        assert ("msgId", 3) in result
+        assert ("chatId", "c1") in result
+
+
+# -- download() ------------------------------------------------------------
+
+DOWNLOAD_URL = "https://files.example.com/f1"
+DOWNLOAD_URL_RE = re.compile(r"https://files\.example\.com/f1")
+
+
+class TestSessionDownload:
+    @pytest.mark.asyncio
+    async def test_download_returns_bytes(self, no_retry_policy: RetryPolicy) -> None:
+        """Happy path: download returns file content as bytes."""
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy,
+        )
+        with aioresponses() as m:
+            m.get(DOWNLOAD_URL_RE, body=b"file content")
+            result = await session.download(DOWNLOAD_URL)
+        assert result == b"file content"
+
+    @pytest.mark.asyncio
+    async def test_download_uses_ssl_settings(self) -> None:
+        """Verify TCPConnector is created with ssl=self._ssl."""
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, ssl=False,
+            retry_policy=RetryPolicy(max_retries=0),
+        )
+        original_tcp = __import__("aiohttp").TCPConnector
+        created_connectors = []
+
+        class SpyTCPConnector(original_tcp):
+            def __init__(self, **kwargs):
+                created_connectors.append(kwargs)
+                super().__init__(**kwargs)
+
+        with patch("vk_teams_async_bot.client.session.aiohttp.TCPConnector", SpyTCPConnector):
+            with aioresponses() as m:
+                m.get(DOWNLOAD_URL_RE, body=b"data")
+                await session.download(DOWNLOAD_URL)
+
+        assert len(created_connectors) == 1
+        assert created_connectors[0]["ssl"] is False
+
+    @pytest.mark.asyncio
+    async def test_download_retries_on_server_error(self, fast_retry_policy: RetryPolicy) -> None:
+        """First call returns 500, second 200. Assert retry works."""
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy,
+        )
+        with aioresponses() as m:
+            m.get(DOWNLOAD_URL_RE, status=500)
+            m.get(DOWNLOAD_URL_RE, body=b"ok")
+            result = await session.download(DOWNLOAD_URL)
+        assert result == b"ok"
+
+    @pytest.mark.asyncio
+    async def test_download_no_retry_on_client_error(self, no_retry_policy: RetryPolicy) -> None:
+        """404 raises APIError immediately."""
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy,
+        )
+        with aioresponses() as m:
+            m.get(DOWNLOAD_URL_RE, status=404)
+            with pytest.raises(APIError) as exc_info:
+                await session.download(DOWNLOAD_URL)
+            assert exc_info.value.status_code == 404
+
+    @pytest.mark.asyncio
+    async def test_download_retries_on_network_error(self, fast_retry_policy: RetryPolicy) -> None:
+        """Network error triggers retry, raises NetworkError on exhaustion."""
+        import aiohttp as _aiohttp
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy,
+        )
+        with aioresponses() as m:
+            for _ in range(3):
+                m.get(DOWNLOAD_URL_RE, exception=_aiohttp.ClientConnectionError("conn refused"))
+            with pytest.raises(NetworkError):
+                await session.download(DOWNLOAD_URL)
+
+    @pytest.mark.asyncio
+    async def test_download_retries_on_timeout(self, fast_retry_policy: RetryPolicy) -> None:
+        """Timeout triggers retry, raises TimeoutError on exhaustion."""
+        session = VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy,
+        )
+        with aioresponses() as m:
+            for _ in range(3):
+                m.get(DOWNLOAD_URL_RE, exception=asyncio.TimeoutError())
+            with pytest.raises(TimeoutError):
+                await session.download(DOWNLOAD_URL)

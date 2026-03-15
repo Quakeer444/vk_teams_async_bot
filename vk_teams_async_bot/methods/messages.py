@@ -51,11 +51,9 @@ def _serialize_format(fmt: Any | None) -> str | None:
 
 
 def _serialize_msg_ids(value: Any | None) -> Any | None:
-    """Serialize msg_id lists as JSON array strings."""
-    if value is None:
-        return None
-    if isinstance(value, list):
-        return json.dumps(value)
+    """Pass msg_id values through unchanged.
+    Lists are handled by session._build_params() as repeated query params.
+    """
     return value
 
 
@@ -343,14 +341,6 @@ class MessageMethods(BaseMethods):
 
     async def download_file(self, url: str) -> bytes:
         """Download a file from an arbitrary URL.
-
-        Uses a standalone aiohttp session (no base_url) so that
-        absolute file URLs returned by the API work correctly.
+        Uses the session's SSL/connector settings and retry policy.
         """
-        import aiohttp
-
-        timeout = aiohttp.ClientTimeout(total=self._session._timeout)
-        async with aiohttp.ClientSession(timeout=timeout) as session:
-            async with session.get(url) as resp:
-                resp.raise_for_status()
-                return await resp.read()
+        return await self._session.download(url)
