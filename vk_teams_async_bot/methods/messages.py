@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -97,21 +98,20 @@ def _validate_file_source(
         raise ValueError("One of file_id or file must be provided")
 
 
-def _build_form_data(
+async def _build_form_data(
     file: str | Path | tuple,
     field_name: str = "file",
 ) -> FormData:
     """Build aiohttp FormData for a file upload.
 
     ``file`` can be:
-      - str / Path  -- path to a file on disk (read synchronously)
+      - str / Path  -- path to a file on disk (read in thread pool)
       - tuple(filename, file_obj, content_type) -- already-open file
     """
     form = FormData(quote_fields=False)
     if isinstance(file, (str, Path)):
         path = Path(file)
-        with open(path, "rb") as fh:
-            content = fh.read()
+        content = await asyncio.to_thread(path.read_bytes)
         form.add_field(field_name, content, filename=path.name)
     elif isinstance(file, tuple):
         filename, file_obj, content_type = file
@@ -210,7 +210,7 @@ class MessageMethods(BaseMethods):
             return FileUploadResponse.model_validate(raw)
 
         # file upload (POST)
-        form = _build_form_data(file)  # type: ignore[arg-type]
+        form = await _build_form_data(file)  # type: ignore[arg-type]
         raw = await self._session.post(
             "/messages/sendFile",
             data=form,
@@ -261,7 +261,7 @@ class MessageMethods(BaseMethods):
             )
             return FileUploadResponse.model_validate(raw)
 
-        form = _build_form_data(file)  # type: ignore[arg-type]
+        form = await _build_form_data(file)  # type: ignore[arg-type]
         raw = await self._session.post(
             "/messages/sendVoice",
             data=form,

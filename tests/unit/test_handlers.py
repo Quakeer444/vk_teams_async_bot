@@ -4,6 +4,7 @@
 # The DI system relies on annotations being actual function objects,
 # not lazy strings. See examples/depends.py for the usage pattern.
 
+from functools import partial
 from typing import Annotated
 
 import aiohttp
@@ -398,6 +399,20 @@ class TestHandlerDI:
         h = BaseHandler(callback=cb)
         await h.handle(_new_message(), object())
         assert calls == ["ok"]
+
+    @pytest.mark.asyncio
+    async def test_partial_dependency_does_not_crash(self):
+        """get_type_hints on partial/lambda should not crash handler DI."""
+        calls = []
+
+        async def cb(event, bot, val: str = "default"):
+            calls.append(val)
+
+        p = partial(lambda x: x, 42)
+        bot = _MockBot(depends=[p])
+        h = BaseHandler(callback=cb)
+        await h.handle(_new_message(), bot)
+        assert calls == ["default"]
 
     @pytest.mark.asyncio
     async def test_callback_with_annotated_dependency(self):

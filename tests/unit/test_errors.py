@@ -34,6 +34,10 @@ class TestErrorHierarchy:
     def test_timeout_error_is_vk_teams_error(self):
         assert isinstance(TimeoutError(), VKTeamsError)
 
+    def test_timeout_error_is_builtin_timeout(self):
+        import builtins
+        assert isinstance(TimeoutError(), builtins.TimeoutError)
+
     def test_session_error_is_vk_teams_error(self):
         assert isinstance(SessionError(), VKTeamsError)
 

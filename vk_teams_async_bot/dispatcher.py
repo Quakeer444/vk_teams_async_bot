@@ -240,6 +240,8 @@ class Dispatcher:
             lock = self._user_locks.setdefault(user_key, asyncio.Lock())
             async with lock:
                 await wrapped(event, data)
+            if not lock.locked() and user_key in self._user_locks:
+                self._user_locks.pop(user_key, None)
         else:
             await wrapped(event, data)
 

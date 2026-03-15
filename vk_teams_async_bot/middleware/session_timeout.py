@@ -75,6 +75,9 @@ class SessionTimeoutMiddleware(BaseMiddleware):
                 expired.append(key)
 
         for key in expired:
+            current_ts = self._timestamps.get(key)
+            if current_ts is None or now - current_ts <= timedelta(seconds=self._timeout):
+                continue
             self._timestamps.pop(key, None)
             state = await self._storage.get_state(key)
             if state is not None:

@@ -97,7 +97,10 @@ class BaseHandler:
                     break
 
                 # Fallback: match by return type annotation
-                ret = typing.get_type_hints(dep_func).get("return")
+                try:
+                    ret = typing.get_type_hints(dep_func).get("return")
+                except (TypeError, AttributeError):
+                    continue
                 # For async generators, unwrap AsyncGenerator[X, Y] -> X
                 origin = typing.get_origin(ret)
                 if origin is not None:

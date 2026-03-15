@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import builtins
+
 
 class VKTeamsError(Exception):
     pass
@@ -20,7 +22,7 @@ class NetworkError(VKTeamsError):
     pass
 
 
-class TimeoutError(VKTeamsError):
+class TimeoutError(VKTeamsError, builtins.TimeoutError):
     pass
 
 

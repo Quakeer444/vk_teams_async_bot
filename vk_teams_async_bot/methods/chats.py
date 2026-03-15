@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
+from pathlib import Path
+
 from aiohttp import FormData
 from pydantic import TypeAdapter
 
@@ -87,9 +90,9 @@ class ChatMethods(BaseMethods):
         """
         form = FormData(quote_fields=False)
         if isinstance(image, str):
-            with open(image, "rb") as fh:
-                content = fh.read()
-            form.add_field("image", content, filename=image)
+            path = Path(image)
+            content = await asyncio.to_thread(path.read_bytes)
+            form.add_field("image", content, filename=path.name)
         elif isinstance(image, tuple):
             filename, file_obj, content_type = image
             form.add_field(
