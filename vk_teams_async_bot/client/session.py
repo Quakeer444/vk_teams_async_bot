@@ -51,6 +51,7 @@ class VKTeamsSession:
         self._ssl = ssl
         self._retry_policy = retry_policy or RetryPolicy()
         self._session: ClientSession | None = None
+        self._session_lock = asyncio.Lock()
 
     # -- Context manager protocol ------------------------------------------
 
@@ -180,15 +181,18 @@ class VKTeamsSession:
         return result
 
     async def _ensure_session(self) -> ClientSession:
-        """Return the existing session or create a new one."""
-        if self._session is None or self._session.closed:
-            self._session = aiohttp.ClientSession(
-                base_url=self._base_url,
-                timeout=aiohttp.ClientTimeout(total=self._timeout),
-                connector=aiohttp.TCPConnector(ssl=self._ssl),
-            )
-            logger.debug("Session created: %s", self._session)
-        return self._session
+        """Return the existing session or create a new one (thread-safe)."""
+        if self._session is not None and not self._session.closed:
+            return self._session
+        async with self._session_lock:
+            if self._session is None or self._session.closed:
+                self._session = aiohttp.ClientSession(
+                    base_url=self._base_url,
+                    timeout=aiohttp.ClientTimeout(total=self._timeout),
+                    connector=aiohttp.TCPConnector(ssl=self._ssl),
+                )
+                logger.debug("Session created: %s", self._session)
+            return self._session
 
     async def _do_request(
         self,
@@ -250,17 +254,23 @@ class VKTeamsSession:
         self,
         method: str,
         endpoint: str,
+        *,
+        idempotent: bool | None = None,
         **kwargs: Any,
     ) -> dict:
         """Wrap ``_do_request`` with retry logic driven by RetryPolicy.
 
         Only retriable errors (ServerError, NetworkError, TimeoutError)
-        trigger a retry.  All other exceptions propagate immediately.
+        trigger a retry.  Non-idempotent requests (POST by default) are
+        not retried to prevent duplicate side effects.
         """
+        if idempotent is None:
+            idempotent = method.upper() != "POST"
         policy = self._retry_policy
+        max_attempts = (1 + policy.max_retries) if idempotent else 1
         last_error: Exception | None = None
 
-        for attempt in range(1 + policy.max_retries):
+        for attempt in range(max_attempts):
             try:
                 return await self._do_request(method, endpoint, **kwargs)
             except _RETRIABLE_ERRORS as exc:

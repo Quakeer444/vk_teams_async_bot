@@ -313,6 +313,29 @@ class TestSessionDownload:
                 await session.download(DOWNLOAD_URL)
 
     @pytest.mark.asyncio
+    async def test_post_does_not_retry_by_default(self, fast_retry_policy: RetryPolicy) -> None:
+        """POST requests are not retried by default to prevent duplicates."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.post(SEND_TEXT, status=500, payload={"ok": False, "description": "err"})
+                with pytest.raises(ServerError):
+                    await session.post("/messages/sendText", chatId="c1", text="hi")
+
+    @pytest.mark.asyncio
+    async def test_ensure_session_concurrent_calls(self) -> None:
+        """Multiple concurrent _ensure_session calls create only one session."""
+        session = VKTeamsSession(BASE_URL, BASE_PATH, TOKEN)
+        results = await asyncio.gather(
+            session._ensure_session(),
+            session._ensure_session(),
+            session._ensure_session(),
+        )
+        assert results[0] is results[1] is results[2]
+        await session.close()
+
+    @pytest.mark.asyncio
     async def test_download_retries_on_timeout(self, fast_retry_policy: RetryPolicy) -> None:
         """Timeout triggers retry, raises TimeoutError on exhaustion."""
         session = VKTeamsSession(
