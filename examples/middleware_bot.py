@@ -17,7 +17,7 @@ dp = Dispatcher()
 logger = logging.getLogger(__name__)
 
 
-@dp.message(CommandFilter("/start"))
+@dp.message(CommandFilter("start"))
 async def cmd_start(event: NewMessageEvent, bot: Bot):
     await bot.send_text(chat_id=event.chat.chat_id, text="Hello")
 

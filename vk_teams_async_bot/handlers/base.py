@@ -10,6 +10,8 @@ from ..filters.base import FilterBase
 from ..filters.state import StateFilter
 from ..types.event import BaseEvent
 
+_SENTINEL = object()
+
 
 class BaseHandler:
     """Base handler that checks filters and executes a callback.
@@ -41,26 +43,16 @@ class BaseHandler:
         return all(f(event) for f in self.filters)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        """Async check that supports StateFilter.
-
-        Falls back to synchronous check for non-async filters.
-        """
+        """Async check that supports StateFilter inside composite filters."""
         if not self.filters:
             return True
 
-        filters: Sequence[FilterBase]
         if isinstance(self.filters, FilterBase):
-            filters = [self.filters]
-        else:
-            filters = self.filters
+            return await self.filters.check_async(event)
 
-        for f in filters:
-            if isinstance(f, StateFilter):
-                if not await f.check(event):
-                    return False
-            else:
-                if not f(event):
-                    return False
+        for f in self.filters:
+            if not await f.check_async(event):
+                return False
         return True
 
     def has_async_filters(self) -> bool:
@@ -68,8 +60,15 @@ class BaseHandler:
         if not self.filters:
             return False
         if isinstance(self.filters, FilterBase):
-            return isinstance(self.filters, StateFilter)
-        return any(isinstance(f, StateFilter) for f in self.filters)
+            return any(
+                isinstance(f, StateFilter)
+                for f in self.filters.iter_filters()
+            )
+        return any(
+            isinstance(leaf, StateFilter)
+            for f in self.filters
+            for leaf in f.iter_filters()
+        )
 
     async def check_signature(self, bot: Any) -> dict[str, Any]:
         """DI: inspect callback signature and resolve dependencies from bot.depends.

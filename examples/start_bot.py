@@ -7,7 +7,7 @@ bot = Bot(bot_token=os.environ["BOT_TOKEN"])
 dp = Dispatcher()
 
 
-@dp.message(CommandFilter("/start"))
+@dp.message(CommandFilter("start"))
 async def cmd_start(event: NewMessageEvent, bot: Bot):
     await bot.send_text(chat_id=event.chat.chat_id, text="Hello")
 

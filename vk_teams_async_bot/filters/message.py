@@ -46,7 +46,7 @@ class CommandFilter(FilterBase):
     COMMAND_PREFIXES = "/"
 
     def __init__(self, command: str) -> None:
-        self.command = command
+        self.command = command.lstrip("/")
 
     def __call__(self, event: BaseEvent) -> bool:
         if not isinstance(event, NewMessageEvent):

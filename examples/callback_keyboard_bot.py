@@ -61,7 +61,7 @@ def keyboard_second_menu():
     return keyboard
 
 
-@dp.message(CommandFilter("/start"))
+@dp.message(CommandFilter("start"))
 async def start_menu_cmd(event: NewMessageEvent, bot: Bot):
     await bot.send_text(
         chat_id=event.chat.chat_id,

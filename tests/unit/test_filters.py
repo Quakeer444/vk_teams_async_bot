@@ -289,6 +289,11 @@ class TestCommandFilter:
         f = CommandFilter("start")
         assert f(_new_message("  /start")) is True
 
+    def test_command_with_slash_prefix_stripped(self):
+        f = CommandFilter("/start")
+        assert f(_new_message("/start")) is True
+        assert f.command == "start"
+
 
 # -- TagFilter --
 
@@ -620,3 +625,34 @@ class TestStateFilter:
         f = StateFilter(self.MyStates.waiting, storage)
         event = _edited_message(chat_id="chat1", user_id="user1")
         assert await f.check(event) is True
+
+
+class TestStateFilterInsideCompositeFilters:
+    class MyStates(StatesGroup):
+        waiting = State()
+
+    @pytest.mark.asyncio
+    async def test_state_filter_inside_and_filter(self):
+        storage = MemoryStorage()
+        await storage.set_state(("chat1", "user1"), "MyStates:waiting")
+
+        f = MessageFilter() & StateFilter(self.MyStates.waiting, storage)
+        event = _new_message(chat_id="chat1", user_id="user1")
+        assert await f.check_async(event) is True
+
+    @pytest.mark.asyncio
+    async def test_state_filter_inside_or_filter(self):
+        storage = MemoryStorage()
+        await storage.set_state(("chat1", "user1"), "MyStates:waiting")
+
+        f = RegexpFilter(r"^nomatch$") | StateFilter(self.MyStates.waiting, storage)
+        event = _new_message(chat_id="chat1", user_id="user1")
+        assert await f.check_async(event) is True
+
+    @pytest.mark.asyncio
+    async def test_state_filter_inside_not_filter(self):
+        storage = MemoryStorage()
+
+        f = ~StateFilter(self.MyStates.waiting, storage)
+        event = _new_message(chat_id="chat1", user_id="user1")
+        assert await f.check_async(event) is True

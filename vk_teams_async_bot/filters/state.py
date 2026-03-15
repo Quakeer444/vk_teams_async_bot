@@ -58,6 +58,10 @@ class StateFilter(FilterBase):
         current = await ctx.get_state()
         return current == self.target_state
 
+    async def check_async(self, event: BaseEvent) -> bool:
+        """Override base class to use async storage lookup."""
+        return await self.check(event)
+
     def __call__(self, event: BaseEvent) -> bool:
         raise NotImplementedError(
             "StateFilter requires async check(). "
