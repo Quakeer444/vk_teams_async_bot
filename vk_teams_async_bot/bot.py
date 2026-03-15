@@ -57,6 +57,8 @@ class Bot(
         last_event_id: int = 0,
         ssl: bool | None = None,
         retry_policy: RetryPolicy | None = None,
+        shutdown_timeout: float = 30.0,
+        max_concurrent_handlers: int = 100,
     ) -> None:
         self._session = VKTeamsSession(
             base_url=url,
@@ -73,6 +75,8 @@ class Bot(
         self._background_tasks: set[asyncio.Task] = set()
         self._on_startup_hooks: list[LifecycleHook] = []
         self._on_shutdown_hooks: list[LifecycleHook] = []
+        self._shutdown_timeout = shutdown_timeout
+        self._handler_semaphore = asyncio.Semaphore(max_concurrent_handlers)
 
         self.depends: list = []
 
@@ -92,15 +96,35 @@ class Bot(
 
     async def close(self) -> None:
         """Gracefully shut down: await pending tasks, then close session."""
-        if self._background_tasks:
-            logger.debug(
-                "Awaiting %d background tasks...", len(self._background_tasks)
+        await self._drain_tasks()
+        await self._session.close()
+
+    async def _drain_tasks(self) -> None:
+        """Await background tasks with timeout, cancel stragglers."""
+        if not self._background_tasks:
+            return
+        logger.debug(
+            "Awaiting %d background tasks...", len(self._background_tasks)
+        )
+        try:
+            await asyncio.wait_for(
+                asyncio.gather(
+                    *self._background_tasks, return_exceptions=True
+                ),
+                timeout=self._shutdown_timeout,
             )
+        except asyncio.TimeoutError:
+            logger.warning(
+                "Shutdown timeout (%.1fs), cancelling %d remaining tasks",
+                self._shutdown_timeout,
+                len(self._background_tasks),
+            )
+            for task in self._background_tasks:
+                task.cancel()
             await asyncio.gather(
                 *self._background_tasks, return_exceptions=True
             )
-            self._background_tasks.clear()
-        await self._session.close()
+        self._background_tasks.clear()
 
     # -- Lifecycle hooks -------------------------------------------------------
 
@@ -168,16 +192,7 @@ class Bot(
                 except Exception:
                     logger.exception("Error in shutdown hook")
 
-            # Gracefully await pending tasks
-            if self._background_tasks:
-                logger.debug(
-                    "Awaiting %d pending tasks...",
-                    len(self._background_tasks),
-                )
-                await asyncio.gather(
-                    *self._background_tasks, return_exceptions=True
-                )
-                self._background_tasks.clear()
+            await self._drain_tasks()
 
     def _handle_signal(self) -> None:
         """Signal handler: first call stops polling gracefully, second forces exit."""
@@ -240,8 +255,9 @@ class Bot(
         event: BaseEvent | RawUnknownEvent,
     ) -> None:
         """Dispatch a single event, catching exceptions."""
-        logger.debug("Dispatching event %s: %r", event.event_id, event)
-        try:
-            await dispatcher.feed_event(event, self)
-        except Exception:
-            logger.exception("Error dispatching event %s", event.event_id)
+        async with self._handler_semaphore:
+            logger.debug("Dispatching event %s: %r", event.event_id, event)
+            try:
+                await dispatcher.feed_event(event, self)
+            except Exception:
+                logger.exception("Error dispatching event %s", event.event_id)

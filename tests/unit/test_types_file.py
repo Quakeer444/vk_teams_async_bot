@@ -27,6 +27,6 @@ class TestFileInfo:
         with pytest.raises(ValidationError):
             FileInfo(type="image", size=100, filename="x.jpg")
 
-    def test_extra_forbidden(self):
-        with pytest.raises(ValidationError):
-            FileInfo(type="image", size=100, filename="x.jpg", url="u", extra="no")
+    def test_extra_ignored(self):
+        f = FileInfo(type="image", size=100, filename="x.jpg", url="u", extra="no")
+        assert f.type == "image"

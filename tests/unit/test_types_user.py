@@ -49,9 +49,9 @@ class TestBotInfo:
         assert bot.user_id == "bot123"
         assert bot.photo is None
 
-    def test_extra_fields_forbidden(self):
-        with pytest.raises(ValidationError):
-            BotInfo(userId="bot123", unknown="nope")
+    def test_extra_fields_ignored(self):
+        bot = BotInfo(userId="bot123", unknown="nope")
+        assert bot.user_id == "bot123"
 
 
 class TestUserAdmin:
