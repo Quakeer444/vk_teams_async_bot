@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from vk_teams_async_bot.helpers import InlineKeyboardMarkup, KeyboardButton
+from vk_teams_async_bot import InlineKeyboardMarkup, KeyboardButton
 from vk_teams_async_bot.errors import APIError
 from vk_teams_async_bot.types.enums import ParseMode
 from vk_teams_async_bot.types.response import (
