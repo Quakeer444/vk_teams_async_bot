@@ -14,5 +14,5 @@ class EventChatRef(VKTeamsFlexModel):
     """
 
     chat_id: str = Field(alias="chatId")
-    type: ChatType
+    type: ChatType | str
     title: str | None = None

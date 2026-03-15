@@ -26,9 +26,9 @@ class TestOkResponse:
         r = OkResponse(ok=False)
         assert r.ok is False
 
-    def test_extra_forbidden(self):
-        with pytest.raises(ValidationError):
-            OkResponse(ok=True, extra="nope")
+    def test_extra_ignored(self):
+        r = OkResponse(ok=True, extra="nope")
+        assert r.ok is True
 
     def test_round_trip(self):
         data = {"ok": True}

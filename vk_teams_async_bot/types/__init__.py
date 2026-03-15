@@ -1,4 +1,4 @@
-from .base import VKTeamsFlexModel, VKTeamsModel
+from .base import VKTeamsFlexModel, VKTeamsModel, VKTeamsResponseModel
 from .chat import (
     ChatInfoChannel,
     ChatInfoGroup,
@@ -65,6 +65,7 @@ from .user import BotInfo, PhotoUrl, User, UserAdmin
 
 __all__ = [
     "VKTeamsModel",
+    "VKTeamsResponseModel",
     "VKTeamsFlexModel",
     "ParseMode",
     "ChatType",

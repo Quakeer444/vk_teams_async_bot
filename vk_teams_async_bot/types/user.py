@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pydantic import Field
 
-from .base import VKTeamsFlexModel, VKTeamsModel
+from .base import VKTeamsFlexModel, VKTeamsResponseModel
 
 
-class PhotoUrl(VKTeamsModel):
+class PhotoUrl(VKTeamsResponseModel):
     url: str
 
 
@@ -16,7 +16,7 @@ class User(VKTeamsFlexModel):
     nick: str | None = None
 
 
-class BotInfo(VKTeamsModel):
+class BotInfo(VKTeamsResponseModel):
     user_id: str = Field(alias="userId")
     nick: str | None = None
     first_name: str | None = Field(default=None, alias="firstName")
@@ -24,7 +24,7 @@ class BotInfo(VKTeamsModel):
     photo: list[PhotoUrl] | None = None
 
 
-class UserAdmin(VKTeamsModel):
+class UserAdmin(VKTeamsResponseModel):
     user_id: str = Field(alias="userId")
     creator: bool | None = None
     admin: bool | None = None

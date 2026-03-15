@@ -4,12 +4,12 @@ from typing import Annotated, Literal, Union
 
 from pydantic import Field
 
-from .base import VKTeamsModel
+from .base import VKTeamsResponseModel
 from .enums import ChatType
 from .user import PhotoUrl
 
 
-class ChatInfoPrivate(VKTeamsModel):
+class ChatInfoPrivate(VKTeamsResponseModel):
     ok: bool = True
     type: Literal[ChatType.PRIVATE] = ChatType.PRIVATE
     first_name: str | None = Field(default=None, alias="firstName")
@@ -21,7 +21,7 @@ class ChatInfoPrivate(VKTeamsModel):
     photo: list[PhotoUrl] | None = None
 
 
-class ChatInfoGroup(VKTeamsModel):
+class ChatInfoGroup(VKTeamsResponseModel):
     ok: bool = True
     type: Literal[ChatType.GROUP] = ChatType.GROUP
     title: str | None = None
@@ -32,7 +32,7 @@ class ChatInfoGroup(VKTeamsModel):
     join_moderation: bool | None = Field(default=None, alias="joinModeration")
 
 
-class ChatInfoChannel(VKTeamsModel):
+class ChatInfoChannel(VKTeamsResponseModel):
     ok: bool = True
     type: Literal[ChatType.CHANNEL] = ChatType.CHANNEL
     title: str | None = None

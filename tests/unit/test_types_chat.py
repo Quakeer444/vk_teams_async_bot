@@ -98,6 +98,11 @@ class TestEventChatRefDistinctFromChatInfo:
         ref = EventChatRef(chatId="123", type="private", unknown="ok")
         assert ref.chat_id == "123"
 
-    def test_chat_info_extra_forbidden(self):
-        with pytest.raises(ValidationError):
-            ChatInfoPrivate(type="private", unknown="nope")
+    def test_chat_info_extra_ignored(self):
+        chat = ChatInfoPrivate(type="private", unknown="nope")
+        assert chat.type == "private"
+
+    def test_event_chat_ref_unknown_type(self):
+        ref = EventChatRef(chatId="123", type="thread", title="Thread")
+        assert ref.chat_id == "123"
+        assert ref.type == "thread"

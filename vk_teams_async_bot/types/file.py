@@ -1,7 +1,7 @@
-from .base import VKTeamsModel
+from .base import VKTeamsResponseModel
 
 
-class FileInfo(VKTeamsModel):
+class FileInfo(VKTeamsResponseModel):
     type: str
     size: int
     filename: str
