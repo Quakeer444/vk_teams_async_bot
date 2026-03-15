@@ -10,7 +10,7 @@ from typing import Any, Callable, Awaitable, Sequence
 from .client.retry import RetryPolicy
 from .client.session import VKTeamsSession
 from .dispatcher import Dispatcher
-from .errors import EventParsingError, PollingError
+from .errors import PollingError
 from .fsm.storage.base import BaseStorage
 from .methods.chats import ChatMethods
 from .methods.events import EventMethods
@@ -141,8 +141,14 @@ class Bot(
         loop = asyncio.get_running_loop()
 
         # Install signal handlers for graceful shutdown
-        for sig in (signal.SIGINT, signal.SIGTERM):
-            loop.add_signal_handler(sig, self._handle_signal)
+        try:
+            for sig in (signal.SIGINT, signal.SIGTERM):
+                loop.add_signal_handler(sig, self._handle_signal)
+        except NotImplementedError:
+            logger.warning(
+                "Signal handlers not supported on this platform; "
+                "use Ctrl+C to stop"
+            )
 
         # Run startup hooks
         for hook in self._on_startup_hooks:
@@ -185,12 +191,15 @@ class Bot(
 
     async def _polling_loop(self, dispatcher: Dispatcher) -> None:
         """Core polling loop: fetch events and dispatch them."""
+        backoff = 0.0
+        max_backoff = 60.0
         while self._running:
             try:
                 events = await self.get_events(
                     last_event_id=self.last_event_id,
                     poll_time=self.poll_time,
                 )
+                backoff = 0.0
 
                 for event in events:
                     self._update_last_event_id(event)
@@ -200,12 +209,17 @@ class Bot(
                     self._background_tasks.add(task)
                     task.add_done_callback(self._task_done)
 
-            except EventParsingError as exc:
-                logger.error("Event parsing error: %s", exc, exc_info=True)
             except Exception as exc:
                 if not self._running:
                     break
-                logger.error("Polling error: %s", exc, exc_info=True)
+                backoff = min(max(backoff * 2, 1.0), max_backoff)
+                logger.error(
+                    "Polling error (retry in %.1fs): %s",
+                    backoff,
+                    exc,
+                    exc_info=True,
+                )
+                await asyncio.sleep(backoff)
 
     def _update_last_event_id(
         self, event: BaseEvent | RawUnknownEvent

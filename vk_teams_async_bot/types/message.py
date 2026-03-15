@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 
 from .base import VKTeamsFlexModel
 from .enums import Parts
@@ -121,6 +121,8 @@ MessagePart = Annotated[
     Field(discriminator="type"),
 ]
 
+_part_adapter: TypeAdapter[MessagePart] = TypeAdapter(MessagePart)
+
 
 def parse_parts(raw_parts: list[dict]) -> list[MessagePart]:
     """Parse message parts, skipping unknown types with a warning.
@@ -129,15 +131,12 @@ def parse_parts(raw_parts: list[dict]) -> list[MessagePart]:
     via the discriminated union. Unknown or malformed parts are logged
     and skipped -- they never raise.
     """
-    from pydantic import TypeAdapter
-
-    adapter = TypeAdapter(MessagePart)
     result: list[MessagePart] = []
 
     for raw in raw_parts:
         part_type = raw.get("type", "<missing>")
         try:
-            parsed = adapter.validate_python(raw)
+            parsed = _part_adapter.validate_python(raw)
             result.append(parsed)
         except ValidationError:
             logger.warning(

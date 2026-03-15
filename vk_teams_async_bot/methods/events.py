@@ -26,7 +26,8 @@ class EventMethods(BaseMethods):
         """Long-poll for events.
 
         Returns a list of parsed event objects.  Unknown event types
-        are wrapped in ``RawUnknownEvent``.
+        are wrapped in ``RawUnknownEvent``.  Malformed events are logged
+        and skipped so the batch is never lost entirely.
 
         Endpoint: GET /events/get
         """
@@ -36,6 +37,24 @@ class EventMethods(BaseMethods):
             pollTime=poll_time,
         )
         raw_events: list[dict] = raw.get("events", [])
+        results: list[BaseEvent | RawUnknownEvent] = []
         for ev in raw_events:
             logger.debug("Raw event: %s", ev)
-        return [parse_event(ev) for ev in raw_events]
+            try:
+                results.append(parse_event(ev))
+            except Exception as exc:
+                event_id = ev.get("eventId", 0)
+                logger.error(
+                    "Failed to parse event (eventId=%s, type=%s): %s",
+                    event_id,
+                    ev.get("type"),
+                    exc,
+                )
+                results.append(
+                    RawUnknownEvent(
+                        eventId=event_id,
+                        type=ev.get("type", ""),
+                        payload=ev.get("payload", {}),
+                    )
+                )
+        return results

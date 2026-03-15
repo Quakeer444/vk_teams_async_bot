@@ -24,6 +24,8 @@ def _extract_chat_user(event: BaseEvent) -> tuple[str, str] | None:
     if isinstance(event, (NewMessageEvent, EditedMessageEvent, PinnedMessageEvent)):
         return event.chat.chat_id, event.from_.user_id
     if isinstance(event, CallbackQueryEvent):
+        if event.chat is None:
+            return None
         return event.chat.chat_id, event.from_.user_id
     return None
 

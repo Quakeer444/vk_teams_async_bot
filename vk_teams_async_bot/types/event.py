@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 
 from ..errors import EventParsingError
 from .base import VKTeamsFlexModel
@@ -152,6 +152,8 @@ Event = Annotated[
     Field(discriminator="type"),
 ]
 
+_event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
+
 
 def _flatten_raw_event(raw: dict) -> dict:
     """Flatten {eventId, type, payload: {...}} into a single dict."""
@@ -173,8 +175,6 @@ def parse_event(raw: dict) -> BaseEvent | RawUnknownEvent:
     Malformed payloads (missing required fields) raise EventParsingError
     with the raw data attached.
     """
-    from pydantic import TypeAdapter
-
     event_type = raw.get("type")
 
     # Check if event type is known
@@ -199,9 +199,8 @@ def parse_event(raw: dict) -> BaseEvent | RawUnknownEvent:
     logger.debug("Flattened event: %s", flat)
 
     # Parse via discriminated union
-    adapter = TypeAdapter(Event)
     try:
-        parsed = adapter.validate_python(flat)
+        parsed = _event_adapter.validate_python(flat)
     except ValidationError as exc:
         raise EventParsingError(
             f"Failed to parse event type={event_type}: {exc}",
