@@ -314,7 +314,7 @@ class MessageMethods(BaseMethods):
         raw = await self._session.get(
             "/messages/deleteMessages",
             chatId=chat_id,
-            msgId=msg_id,
+            msgId=_serialize_msg_ids(msg_id),
         )
         return OkResponse.model_validate(raw)
 
@@ -349,7 +349,8 @@ class MessageMethods(BaseMethods):
         """
         import aiohttp
 
-        async with aiohttp.ClientSession() as session:
+        timeout = aiohttp.ClientTimeout(total=self._session._timeout)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
             async with session.get(url) as resp:
                 resp.raise_for_status()
                 return await resp.read()
