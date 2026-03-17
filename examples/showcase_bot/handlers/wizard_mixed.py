@@ -19,23 +19,7 @@ from ..keyboards import (
     wzm_notes_kb,
 )
 from ..states import WizardMixedStates
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
+from .utils import progress_bar, safe_edit
 
 
 def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
@@ -45,7 +29,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_data({})
         await safe_edit(
             event, bot,
-            "Регистрация на событие -- Шаг 1/5\n\nВыберите тип события:",
+            "Регистрация на событие {progress_bar(1, 5)}\n\nВыберите тип события:",
             wzm_event_kb(),
         )
 
@@ -56,7 +40,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_state(WizardMixedStates.entering_attendees)
         await safe_edit(
             event, bot,
-            f"Регистрация на событие -- Шаг 2/5\n\nСобытие: {event_type}\nВведите количество участников:",
+            f"Регистрация на событие {progress_bar(2, 5)}\n\nСобытие: {event_type}\nВведите количество участников:",
             wzm_attendees_kb(),
         )
 
@@ -80,7 +64,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await bot.send_text(
             chat_id=event.chat.chat_id,
             text=(
-                f"Регистрация на событие -- Шаг 3/5\n\n"
+                f"Регистрация на событие {progress_bar(3, 5)}\n\n"
                 f"Событие: {data['event_type']}\n"
                 f"Участники: {count}\n"
                 f"Выберите тип питания:"
@@ -97,7 +81,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await safe_edit(
             event, bot,
             (
-                f"Регистрация на событие -- Шаг 4/5\n\n"
+                f"Регистрация на событие {progress_bar(4, 5)}\n\n"
                 f"Событие: {data['event_type']}\n"
                 f"Участники: {data['attendees']}\n"
                 f"Питание: {meal}\n"
@@ -113,7 +97,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_state(WizardMixedStates.confirm)
         data = await fsm_context.get_data()
         summary = (
-            f"Регистрация на событие -- Шаг 5/5\n\n"
+            f"Регистрация на событие {progress_bar(5, 5)}\n\n"
             f"Событие: {data['event_type']}\n"
             f"Участники: {data['attendees']}\n"
             f"Питание: {data['meal']}\n"
@@ -132,7 +116,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_state(WizardMixedStates.confirm)
         data = await fsm_context.get_data()
         summary = (
-            f"Регистрация на событие -- Шаг 5/5\n\n"
+            f"Регистрация на событие {progress_bar(5, 5)}\n\n"
             f"Событие: {data['event_type']}\n"
             f"Участники: {data['attendees']}\n"
             f"Питание: {data['meal']}\n"
@@ -164,7 +148,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_state(WizardMixedStates.choosing_event)
         await safe_edit(
             event, bot,
-            "Регистрация на событие -- Шаг 1/5\n\nВыберите тип события:",
+            "Регистрация на событие {progress_bar(1, 5)}\n\nВыберите тип события:",
             wzm_event_kb(),
         )
 
@@ -174,7 +158,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Регистрация на событие -- Шаг 2/5\n\nСобытие: {data.get('event_type', '?')}\nВведите количество участников:",
+            f"Регистрация на событие {progress_bar(2, 5)}\n\nСобытие: {data.get('event_type', '?')}\nВведите количество участников:",
             wzm_attendees_kb(),
         )
 
@@ -185,7 +169,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await safe_edit(
             event, bot,
             (
-                f"Регистрация на событие -- Шаг 3/5\n\n"
+                f"Регистрация на событие {progress_bar(3, 5)}\n\n"
                 f"Событие: {data.get('event_type', '?')}\n"
                 f"Участники: {data.get('attendees', '?')}\n"
                 f"Выберите тип питания:"
@@ -200,7 +184,7 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await safe_edit(
             event, bot,
             (
-                f"Регистрация на событие -- Шаг 4/5\n\n"
+                f"Регистрация на событие {progress_bar(4, 5)}\n\n"
                 f"Событие: {data.get('event_type', '?')}\n"
                 f"Участники: {data.get('attendees', '?')}\n"
                 f"Питание: {data.get('meal', '?')}\n"

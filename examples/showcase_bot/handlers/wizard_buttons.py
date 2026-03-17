@@ -15,23 +15,7 @@ from ..keyboards import (
     wzb_size_kb,
 )
 from ..states import WizardButtonStates
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
+from .utils import progress_bar, safe_edit
 
 
 def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
@@ -39,14 +23,14 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
     async def start_wizard(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.set_state(WizardButtonStates.choosing_size)
         await fsm_context.set_data({})
-        await safe_edit(event, bot, "Заказ пиццы -- Шаг 1/4\n\nВыберите размер:", wzb_size_kb())
+        await safe_edit(event, bot, f"Заказ пиццы {progress_bar(1, 4)}\n\nВыберите размер:", wzb_size_kb())
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^wzb:size:"))
     async def choose_size(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
         size = event.callback_data.split(":")[2]
         await fsm_context.update_data(size=size)
         await fsm_context.set_state(WizardButtonStates.choosing_crust)
-        await safe_edit(event, bot, f"Заказ пиццы -- Шаг 2/4\n\nРазмер: {size}\nВыберите тесто:", wzb_crust_kb())
+        await safe_edit(event, bot, f"Заказ пиццы {progress_bar(2, 4)}\n\nРазмер: {size}\nВыберите тесто:", wzb_crust_kb())
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^wzb:crust:"))
     async def choose_crust(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
@@ -56,7 +40,7 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Заказ пиццы -- Шаг 3/4\n\nРазмер: {data['size']}\nТесто: {crust}\nВыберите соус:",
+            f"Заказ пиццы {progress_bar(3, 4)}\n\nРазмер: {data['size']}\nТесто: {crust}\nВыберите соус:",
             wzb_sauce_kb(),
         )
 
@@ -67,7 +51,7 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
         await fsm_context.set_state(WizardButtonStates.confirm)
         data = await fsm_context.get_data()
         summary = (
-            f"Заказ пиццы -- Шаг 4/4\n\n"
+            f"Заказ пиццы {progress_bar(4, 4)}\n\n"
             f"Размер: {data['size']}\n"
             f"Тесто: {data['crust']}\n"
             f"Соус: {sauce}\n\n"
@@ -96,7 +80,7 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("wzb:back:size"))
     async def back_to_size(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.set_state(WizardButtonStates.choosing_size)
-        await safe_edit(event, bot, "Заказ пиццы -- Шаг 1/4\n\nВыберите размер:", wzb_size_kb())
+        await safe_edit(event, bot, f"Заказ пиццы {progress_bar(1, 4)}\n\nВыберите размер:", wzb_size_kb())
 
     @dp.callback_query(CallbackDataFilter("wzb:back:crust"))
     async def back_to_crust(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
@@ -104,7 +88,7 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Заказ пиццы -- Шаг 2/4\n\nРазмер: {data.get('size', '?')}\nВыберите тесто:",
+            f"Заказ пиццы {progress_bar(2, 4)}\n\nРазмер: {data.get('size', '?')}\nВыберите тесто:",
             wzb_crust_kb(),
         )
 
@@ -114,6 +98,6 @@ def register_wizard_buttons_handlers(dp: Dispatcher) -> None:
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Заказ пиццы -- Шаг 3/4\n\nРазмер: {data.get('size', '?')}\nТесто: {data.get('crust', '?')}\nВыберите соус:",
+            f"Заказ пиццы {progress_bar(3, 4)}\n\nРазмер: {data.get('size', '?')}\nТесто: {data.get('crust', '?')}\nВыберите соус:",
             wzb_sauce_kb(),
         )

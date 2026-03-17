@@ -9,25 +9,7 @@ from vk_teams_async_bot import (
 )
 
 from ..keyboards import back_to_main_kb, formatting_menu_kb
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None, **kwargs):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-            **kwargs,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-            **kwargs,
-        )
+from .utils import safe_edit
 
 
 def register_formatting_handlers(dp: Dispatcher) -> None:
@@ -131,8 +113,8 @@ def register_formatting_handlers(dp: Dispatcher) -> None:
             "Вишня"
         )
         fmt = Format()
-        # "Нумерованный список:\n" = 22 chars
-        offset = 22
+        # "Нумерованный список:\n" = 21 chars
+        offset = 21
         # Each item: "Первый элемент\n" = 15, "Второй элемент\n" = 15, "Третий элемент\n" = 15
         fmt.add(StyleType.ORDERED_LIST, offset, 14)
         offset += 15

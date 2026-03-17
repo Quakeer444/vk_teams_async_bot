@@ -3,12 +3,17 @@ from vk_teams_async_bot import (
     CallbackDataFilter,
     CallbackDataRegexpFilter,
     CallbackQueryEvent,
+    ChatIdFilter,
+    ChatTypeFilter,
     CommandFilter,
     Dispatcher,
     FileFilter,
+    FileTypeFilter,
     ForwardFilter,
+    FromUserFilter,
     FSMContext,
     MentionFilter,
+    MentionUserFilter,
     MessageTextPartFromNickFilter,
     NewMessageEvent,
     RegexpFilter,
@@ -17,6 +22,7 @@ from vk_teams_async_bot import (
     StateFilter,
     StickerFilter,
     TagFilter,
+    TextFilter,
     VoiceFilter,
 )
 from vk_teams_async_bot.fsm.storage.base import BaseStorage
@@ -26,26 +32,11 @@ from ..keyboards import (
     filter_advanced_kb,
     filter_composite_kb,
     filter_parts_kb,
+    filter_text_user_kb,
     filters_menu_kb,
 )
 from ..states import FilterDemoStates
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
+from .utils import safe_edit
 
 
 def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
@@ -96,7 +87,7 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await fsm_context.set_state(FilterDemoStates.waiting_for_forward)
         await safe_edit(event, bot, "Тест ForwardFilter\n\nПерешлите сюда любое сообщение.", back_to_main_kb())
 
-    # State-guarded part filter handlers
+    # State-guarded part filter handlers (specific handler THEN fallback for each state)
     @dp.message(StateFilter(FilterDemoStates.waiting_for_file, storage), FileFilter())
     async def got_file(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.clear()
@@ -105,6 +96,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text="FileFilter сработал! Файл обнаружен.",
             inline_keyboard_markup=filter_parts_kb(),
         )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_file, storage))
+    async def fallback_file(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается файл. Отправьте файл или /cancel.")
 
     @dp.message(StateFilter(FilterDemoStates.waiting_for_voice, storage), VoiceFilter())
     async def got_voice(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
@@ -115,6 +110,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             inline_keyboard_markup=filter_parts_kb(),
         )
 
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_voice, storage))
+    async def fallback_voice(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается голосовое сообщение. Или /cancel.")
+
     @dp.message(StateFilter(FilterDemoStates.waiting_for_mention, storage), MentionFilter())
     async def got_mention(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.clear()
@@ -123,6 +122,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text="MentionFilter сработал! Упоминание обнаружено.",
             inline_keyboard_markup=filter_parts_kb(),
         )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_mention, storage))
+    async def fallback_mention(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается упоминание (@user). Или /cancel.")
 
     @dp.message(StateFilter(FilterDemoStates.waiting_for_reply, storage), ReplyFilter())
     async def got_reply(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
@@ -133,6 +136,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             inline_keyboard_markup=filter_parts_kb(),
         )
 
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_reply, storage))
+    async def fallback_reply(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается ответ на сообщение. Или /cancel.")
+
     @dp.message(StateFilter(FilterDemoStates.waiting_for_forward, storage), ForwardFilter())
     async def got_forward(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.clear()
@@ -141,6 +148,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text="ForwardFilter сработал! Пересылка обнаружена.",
             inline_keyboard_markup=filter_parts_kb(),
         )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_forward, storage))
+    async def fallback_forward(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается пересланное сообщение. Или /cancel.")
 
     @dp.message(StateFilter(FilterDemoStates.waiting_for_sticker, storage), StickerFilter())
     async def got_sticker(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
@@ -151,37 +162,95 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             inline_keyboard_markup=filter_parts_kb(),
         )
 
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_sticker, storage))
+    async def fallback_sticker(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается стикер. Или /cancel.")
+
     # -- Text Filters --
     @dp.callback_query(CallbackDataFilter("flt:text"))
     async def show_text_filters(event: CallbackQueryEvent, bot: Bot):
-        text = (
-            "Текстовые фильтры\n\n"
-            "Эти фильтры зарегистрированы глобально:\n"
-            "- RegexpFilter: отправьте email для теста\n"
-            "- TagFilter: отправьте 'hello', 'hi' или 'hey'\n"
-            "- CommandFilter: отправьте /demo"
+        await safe_edit(
+            event, bot,
+            "Текстовые фильтры\n\nВыберите фильтр для теста:",
+            filter_text_user_kb(),
         )
-        await safe_edit(event, bot, text, back_to_main_kb())
 
-    @dp.message(RegexpFilter(r"^[\w.+-]+@[\w-]+\.[\w.]+$"))
-    async def regexp_match(event: NewMessageEvent, bot: Bot):
+    @dp.callback_query(CallbackDataFilter("flt:txt:regexp"))
+    async def start_regexp_test(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.set_state(FilterDemoStates.waiting_for_email_regexp)
+        await safe_edit(
+            event, bot,
+            "Тест RegexpFilter(r\"^[\\w.+-]+@[\\w-]+\\.[\\w.]+$\")\n\n"
+            "Отправьте email-адрес для проверки.",
+            back_to_main_kb(),
+        )
+
+    @dp.callback_query(CallbackDataFilter("flt:txt:tag"))
+    async def start_tag_test(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.set_state(FilterDemoStates.waiting_for_tag)
+        await safe_edit(
+            event, bot,
+            "Тест TagFilter([\"hello\", \"hi\", \"hey\"])\n\n"
+            "Отправьте одно из слов: hello, hi, hey.",
+            back_to_main_kb(),
+        )
+
+    @dp.callback_query(CallbackDataFilter("flt:txt:cmd"))
+    async def start_cmd_test(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.set_state(FilterDemoStates.waiting_for_command)
+        await safe_edit(
+            event, bot,
+            "Тест CommandFilter(\"demo\")\n\n"
+            "Отправьте команду /demo.",
+            back_to_main_kb(),
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_email_regexp, storage), RegexpFilter(r"^[\w.+-]+@[\w-]+\.[\w.]+$"))
+    async def regexp_match(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.clear()
         await bot.send_text(
             chat_id=event.chat.chat_id,
             text=f"RegexpFilter сработал! Обнаружен email: {event.text}",
+            inline_keyboard_markup=filter_text_user_kb(),
         )
 
-    @dp.message(TagFilter(["hello", "hi", "hey"]))
-    async def tag_match(event: NewMessageEvent, bot: Bot):
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_email_regexp, storage))
+    async def fallback_regexp(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text="Не похоже на email. Попробуйте снова или /cancel.",
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_tag, storage), TagFilter(["hello", "hi", "hey"]))
+    async def tag_match(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.clear()
         await bot.send_text(
             chat_id=event.chat.chat_id,
             text=f"TagFilter сработал! Вы сказали: {event.text}",
+            inline_keyboard_markup=filter_text_user_kb(),
         )
 
-    @dp.message(CommandFilter("demo"))
-    async def command_match(event: NewMessageEvent, bot: Bot):
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_tag, storage))
+    async def fallback_tag(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text="TagFilter не сработал. Отправьте hello, hi или hey. Или /cancel.",
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_command, storage), CommandFilter("demo"))
+    async def command_match(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.clear()
         await bot.send_text(
             chat_id=event.chat.chat_id,
             text="CommandFilter сработал! Команда /demo получена.",
+            inline_keyboard_markup=filter_text_user_kb(),
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_command, storage))
+    async def fallback_command(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text="Ожидается команда /demo. Или /cancel для выхода.",
         )
 
     # -- Composite Filters --
@@ -233,6 +302,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             inline_keyboard_markup=filter_composite_kb(),
         )
 
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_and, storage))
+    async def fallback_and(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Нужен ответ на сообщение с прикрепленным файлом. Или /cancel.")
+
     @dp.message(StateFilter(FilterDemoStates.waiting_for_or, storage), FileFilter() | VoiceFilter())
     async def got_or(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.clear()
@@ -242,6 +315,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             inline_keyboard_markup=filter_composite_kb(),
         )
 
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_or, storage))
+    async def fallback_or(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается файл или голосовое сообщение. Или /cancel.")
+
     @dp.message(StateFilter(FilterDemoStates.waiting_for_not, storage), ~StickerFilter())
     async def got_not(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
         await fsm_context.clear()
@@ -250,6 +327,10 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text="NOT-фильтр сработал! Сообщение не является стикером.",
             inline_keyboard_markup=filter_composite_kb(),
         )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_not, storage))
+    async def fallback_not(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Вы отправили стикер -- NOT-фильтр его отклонит. Отправьте что-то другое. Или /cancel.")
 
     # -- Advanced Filters --
     @dp.callback_query(CallbackDataFilter("flt:advanced"))
@@ -320,4 +401,157 @@ def register_filters_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             await bot.send_text(
                 chat_id=event.chat.chat_id,
                 text=f"Не подходит. Перешлите или ответьте на сообщение от @{nick}.",
+            )
+
+    # -- Merged from filters_new: TextFilter, FileTypeFilter, FromUserFilter, ChatTypeFilter, ChatIdFilter --
+
+    @dp.callback_query(CallbackDataFilter("flt:text_filter"))
+    async def test_text_filter(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.set_state(FilterDemoStates.waiting_for_text_filter)
+        await safe_edit(
+            event, bot,
+            "Тест TextFilter\n\n"
+            "Отправьте текстовое сообщение. TextFilter пропускает сообщения "
+            "с непустым текстом (пробелы не считаются).",
+            filter_text_user_kb(),
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_text_filter, storage), TextFilter())
+    async def got_text_filter(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.clear()
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text=f"TextFilter сработал!\n\nТекст: \"{event.text}\"",
+            inline_keyboard_markup=filter_text_user_kb(),
+        )
+
+    @dp.callback_query(CallbackDataFilter("flt:fromuser"))
+    async def test_from_user(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        user_id = event.from_.user_id if event.from_ else "unknown"
+        await fsm_context.set_state(FilterDemoStates.waiting_for_from_user)
+        await fsm_context.update_data(target_user_id=user_id)
+        await safe_edit(
+            event, bot,
+            f"Тест FromUserFilter(\"{user_id}\")\n\n"
+            f"Фильтр настроен на ваш user_id. Отправьте любое сообщение для проверки.",
+            filter_text_user_kb(),
+        )
+
+    # FromUserFilter uses manual call because the user_id is dynamic
+    # Idiomatic usage: @dp.message(FromUserFilter("some_fixed_user_id"))
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_from_user, storage))
+    async def got_from_user(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        data = await fsm_context.get_data()
+        target_id = data.get("target_user_id", "")
+        flt = FromUserFilter(target_id)
+        matched = flt(event)
+        await fsm_context.clear()
+        sender_id = event.from_.user_id if event.from_ else "unknown"
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text=(
+                f"FromUserFilter(\"{target_id}\")\n\n"
+                f"Отправитель: {sender_id}\n"
+                f"Совпадение: {matched}"
+            ),
+            inline_keyboard_markup=filter_text_user_kb(),
+        )
+
+    # -- Advanced: ChatTypeFilter (no state needed) --
+    @dp.callback_query(CallbackDataFilter("flt:chattype"))
+    async def test_chat_type(event: CallbackQueryEvent, bot: Bot):
+        chat = event.chat
+        chat_type = chat.type if chat else "unknown"
+        await safe_edit(
+            event, bot,
+            f"ChatTypeFilter\n\n"
+            f"Текущий тип чата: {chat_type}\n\n"
+            f"ChatTypeFilter(ChatType.PRIVATE) -- сработает только в личных сообщениях.\n"
+            f"ChatTypeFilter(ChatType.GROUP) -- сработает только в группе.\n"
+            f"ChatTypeFilter([ChatType.GROUP, ChatType.CHANNEL]) -- группа или канал.",
+            filter_advanced_kb(),
+        )
+
+    # ChatIdFilter uses manual call because the chat_id is dynamic
+    # Idiomatic usage: @dp.callback_query(ChatIdFilter("some_fixed_chat_id"))
+    @dp.callback_query(CallbackDataFilter("flt:chatid"))
+    async def test_chat_id(event: CallbackQueryEvent, bot: Bot):
+        chat_id = event.chat.chat_id if event.chat else "unknown"
+        flt = ChatIdFilter(chat_id)
+        matched = flt(event)
+        await safe_edit(
+            event, bot,
+            f"ChatIdFilter\n\n"
+            f"Текущий chat_id: {chat_id}\n"
+            f"ChatIdFilter(\"{chat_id}\") -- совпадение: {matched}\n\n"
+            f"Используйте для ограничения бота конкретными чатами.",
+            filter_advanced_kb(),
+        )
+
+    @dp.callback_query(CallbackDataFilter("flt:filetype"))
+    async def test_filetype(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.set_state(FilterDemoStates.waiting_for_filetype)
+        await safe_edit(
+            event, bot,
+            "Тест FileTypeFilter([\"image\", \"audio\", \"video\"])\n\n"
+            "Отправьте изображение, аудио или видео.",
+            filter_advanced_kb(),
+        )
+
+    @dp.message(
+        StateFilter(FilterDemoStates.waiting_for_filetype, storage),
+        FileTypeFilter(["image", "audio", "video"]),
+    )
+    async def got_filetype(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        await fsm_context.clear()
+        from vk_teams_async_bot.types.message import FilePart
+        matched_types = [
+            p.payload.type for p in (event.parts or [])
+            if isinstance(p, FilePart) and p.payload.type in ("image", "audio", "video")
+        ]
+        type_str = ", ".join(matched_types) if matched_types else "unknown"
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text=f"FileTypeFilter сработал!\n\nТип файла: {type_str}",
+            inline_keyboard_markup=filter_advanced_kb(),
+        )
+
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_filetype, storage))
+    async def fallback_filetype(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается изображение, аудио или видео. Или /cancel.")
+
+    # -- MentionUserFilter (Phase 4.1) --
+    @dp.callback_query(CallbackDataFilter("flt:mention_user"))
+    async def test_mention_user(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        bot_info = await bot.get_self()
+        nick = bot_info.nick or "unknown"
+        user_id = bot_info.user_id
+        await fsm_context.set_state(FilterDemoStates.waiting_for_mention_user)
+        await fsm_context.update_data(bot_nick=nick, bot_user_id=user_id)
+        await safe_edit(
+            event, bot,
+            f"Тест MentionUserFilter(\"{user_id}\")\n\n"
+            f"Отправьте сообщение с упоминанием @{nick}.",
+            filter_advanced_kb(),
+        )
+
+    # MentionUserFilter uses manual call because the nick is dynamic
+    # Idiomatic usage: @dp.message(MentionUserFilter("fixed_nick"))
+    @dp.message(StateFilter(FilterDemoStates.waiting_for_mention_user, storage))
+    async def got_mention_user(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+        data = await fsm_context.get_data()
+        nick = data.get("bot_nick", "")
+        user_id = data.get("bot_user_id", "")
+        flt = MentionUserFilter(user_id)
+        if flt(event):
+            await fsm_context.clear()
+            await bot.send_text(
+                chat_id=event.chat.chat_id,
+                text=f"MentionUserFilter сработал! Упоминание @{nick} обнаружено.",
+                inline_keyboard_markup=filter_advanced_kb(),
+            )
+        else:
+            await bot.send_text(
+                chat_id=event.chat.chat_id,
+                text=f"MentionUserFilter не сработал. Упомяните @{nick} в сообщении. Или /cancel.",
             )

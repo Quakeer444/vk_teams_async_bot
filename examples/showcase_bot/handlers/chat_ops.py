@@ -13,23 +13,7 @@ from vk_teams_async_bot import (
 )
 
 from ..keyboards import chat_ops_menu_kb
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
+from .utils import safe_edit
 
 
 def register_chat_ops_handlers(dp: Dispatcher) -> None:

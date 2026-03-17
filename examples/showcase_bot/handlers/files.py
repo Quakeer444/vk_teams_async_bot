@@ -13,10 +13,12 @@ from vk_teams_async_bot import (
     NewMessageEvent,
     StateFilter,
 )
+
 from vk_teams_async_bot.fsm.storage.base import BaseStorage
 
 from ..keyboards import back_to_main_kb, files_menu_kb
 from ..states import FileReceiveStates
+from .utils import safe_edit
 
 
 def _make_tiny_png() -> io.BytesIO:
@@ -53,23 +55,6 @@ def _make_tiny_wav() -> io.BytesIO:
     return buf
 
 
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-
-
 def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     @dp.callback_query(CallbackDataFilter("menu:file"))
     async def show_files(event: CallbackQueryEvent, bot: Bot):
@@ -100,24 +85,6 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await bot.send_voice(
             chat_id,
             file=("test.wav", wav_buf, "audio/wav"),
-        )
-
-    @dp.callback_query(CallbackDataFilter("file:info"))
-    async def bot_info(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id)
-        info = await bot.get_self()
-        lines = [
-            "Информация о боте",
-            "",
-            f"User ID: {info.user_id}",
-            f"Ник: {info.nick or '(нет)'}",
-            f"Имя: {info.first_name or '(нет)'}",
-            f"О боте: {info.about or '(нет)'}",
-        ]
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text="\n".join(lines),
-            inline_keyboard_markup=files_menu_kb(),
         )
 
     @dp.callback_query(CallbackDataFilter("file:receive"))
@@ -163,3 +130,7 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             caption="Отправлено повторно по file_id",
             inline_keyboard_markup=files_menu_kb(),
         )
+
+    @dp.message(StateFilter(FileReceiveStates.waiting_for_file, storage))
+    async def fallback_file_receive(event: NewMessageEvent, bot: Bot):
+        await bot.send_text(event.chat.chat_id, "Ожидается файл. Отправьте файл или /cancel.")

@@ -2,8 +2,6 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, AsyncGenerator
 
-import aiohttp
-
 from vk_teams_async_bot import (
     Bot,
     CallbackDataFilter,
@@ -12,12 +10,19 @@ from vk_teams_async_bot import (
 )
 
 from ..keyboards import di_menu_kb
+from .utils import safe_edit
 
 
 @dataclass
 class AppConfig:
     app_name: str
     version: str
+
+
+@dataclass
+class DbConnection:
+    connected: bool
+    opened_at: str
 
 
 def get_config() -> AppConfig:
@@ -28,24 +33,23 @@ async def get_timestamp() -> datetime:
     return datetime.now()
 
 
-async def get_http_session() -> AsyncGenerator[aiohttp.ClientSession, None]:
-    session = aiohttp.ClientSession()
+async def get_db_connection() -> AsyncGenerator[DbConnection, None]:
+    conn = DbConnection(connected=True, opened_at=datetime.now().isoformat())
     try:
-        yield session
+        yield conn
     finally:
-        await session.close()
+        conn.connected = False
 
 
 def register_di_dependencies(bot: Bot) -> None:
     bot.depends.append(get_config)
     bot.depends.append(get_timestamp)
-    bot.depends.append(get_http_session)
+    bot.depends.append(get_db_connection)
 
 
 def register_di_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:di"))
     async def show_di(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id)
         text = (
             "Dependency Injection (DI)\n\n"
             "Бот автоматически подставляет нужные объекты в обработчик "
@@ -58,19 +62,7 @@ def register_di_handlers(dp: Dispatcher) -> None:
             "сессии, подключения, блокировки (teardown гарантирован)\n\n"
             "Выберите пример:"
         )
-        if event.message:
-            await bot.edit_text(
-                chat_id=event.chat.chat_id,
-                msg_id=event.message.msg_id,
-                text=text,
-                inline_keyboard_markup=di_menu_kb(),
-            )
-        else:
-            await bot.send_text(
-                chat_id=event.chat.chat_id,
-                text=text,
-                inline_keyboard_markup=di_menu_kb(),
-            )
+        await safe_edit(event, bot, text, di_menu_kb())
 
     @dp.callback_query(CallbackDataFilter("di:sync"))
     async def di_sync(event: CallbackQueryEvent, bot: Bot, config: AppConfig):
@@ -102,21 +94,16 @@ def register_di_handlers(dp: Dispatcher) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("di:generator"))
-    async def di_gen(event: CallbackQueryEvent, bot: Bot, session: aiohttp.ClientSession):
+    async def di_gen(event: CallbackQueryEvent, bot: Bot, conn: DbConnection):
         await bot.answer_callback_query(query_id=event.query_id)
-        try:
-            async with session.get("https://httpbin.org/ip") as resp:
-                data = await resp.json()
-            ip_info = data.get("origin", "unknown")
-        except Exception as e:
-            ip_info = f"Ошибка: {e}"
         await bot.send_text(
             chat_id=event.chat.chat_id,
             text=(
                 f"Генератор-зависимость (async yield T)\n\n"
-                f"HTTP-сессия создана до обработчика и закрыта после. "
+                f"DB-соединение создано до обработчика и закрыто после. "
                 f"Очистка гарантирована даже при ошибке.\n\n"
-                f"IP бота: {ip_info}"
+                f"Подключено: {conn.connected}\n"
+                f"Открыто в: {conn.opened_at}"
             ),
             inline_keyboard_markup=di_menu_kb(),
         )

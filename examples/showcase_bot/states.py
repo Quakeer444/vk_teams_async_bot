@@ -47,9 +47,10 @@ class FilterDemoStates(StatesGroup):
     waiting_for_not = State()
     waiting_for_regexp_parts = State()
     waiting_for_nick_parts = State()
-
-
-class NewFilterDemoStates(StatesGroup):
+    waiting_for_email_regexp = State()
+    waiting_for_tag = State()
+    waiting_for_command = State()
+    waiting_for_mention_user = State()
     waiting_for_text_filter = State()
     waiting_for_filetype = State()
     waiting_for_from_user = State()
@@ -59,3 +60,6 @@ class ChatAdminStates(StatesGroup):
     entering_title = State()
     entering_about = State()
     entering_rules = State()
+    confirming_title = State()
+    confirming_about = State()
+    confirming_rules = State()

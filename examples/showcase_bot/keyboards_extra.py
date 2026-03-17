@@ -3,21 +3,6 @@ import os
 from vk_teams_async_bot import InlineKeyboardMarkup, KeyboardButton, StyleKeyboard
 
 
-# -- New Filters --
-
-def new_filters_menu_kb() -> InlineKeyboardMarkup:
-    kb = InlineKeyboardMarkup(buttons_in_row=1)
-    kb.add(
-        KeyboardButton(text="ChatTypeFilter", callback_data="flt2:chattype", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="ChatIdFilter", callback_data="flt2:chatid", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="TextFilter", callback_data="flt2:text", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="FileTypeFilter", callback_data="flt2:filetype", style=StyleKeyboard.PRIMARY),
-        KeyboardButton(text="FromUserFilter", callback_data="flt2:fromuser", style=StyleKeyboard.PRIMARY),
-    )
-    kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
-    return kb
-
-
 # -- Error Demo --
 
 def error_demo_menu_kb() -> InlineKeyboardMarkup:
@@ -49,4 +34,13 @@ def chat_admin_menu_kb() -> InlineKeyboardMarkup:
         KeyboardButton(text="Изменить правила чата", callback_data="adm:rules", style=style),
     )
     kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
+    return kb
+
+
+def admin_confirm_kb(action: str) -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(buttons_in_row=2)
+    kb.add(
+        KeyboardButton(text="Подтвердить", callback_data=f"adm:confirm:{action}", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Отмена", callback_data="menu:adm", style=StyleKeyboard.ATTENTION),
+    )
     return kb

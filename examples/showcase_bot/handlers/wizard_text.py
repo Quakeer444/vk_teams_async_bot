@@ -13,26 +13,10 @@ from vk_teams_async_bot.fsm.storage.base import BaseStorage
 
 from ..keyboards import main_menu_kb, wzt_back_cancel_kb, wzt_confirm_kb
 from ..states import WizardTextStates
+from .utils import progress_bar, safe_edit
 
 EMAIL_RE = re.compile(r"^[\w.+-]+@[\w-]+\.[\w.]+$")
 PHONE_RE = re.compile(r"^\d{10,15}$")
-
-
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None):
-    await bot.answer_callback_query(query_id=event.query_id)
-    if event.message:
-        await bot.edit_text(
-            chat_id=event.chat.chat_id,
-            msg_id=event.message.msg_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
-    else:
-        await bot.send_text(
-            chat_id=event.chat.chat_id,
-            text=text,
-            inline_keyboard_markup=keyboard,
-        )
 
 
 def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
@@ -42,7 +26,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await fsm_context.set_data({})
         await safe_edit(
             event, bot,
-            "Регистрация -- Шаг 1/3\n\nВведите ваше полное имя (имя и фамилия):",
+            "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя (имя и фамилия):",
             wzt_back_cancel_kb(),
         )
 
@@ -60,7 +44,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await fsm_context.set_state(WizardTextStates.entering_email)
         await bot.send_text(
             chat_id=event.chat.chat_id,
-            text=f"Регистрация -- Шаг 2/3\n\nИмя: {name}\nВведите email:",
+            text=f"Регистрация {progress_bar(2, 3)}\n\nИмя: {name}\nВведите email:",
             inline_keyboard_markup=wzt_back_cancel_kb(back_step="name"),
         )
 
@@ -79,7 +63,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         data = await fsm_context.get_data()
         await bot.send_text(
             chat_id=event.chat.chat_id,
-            text=f"Регистрация -- Шаг 3/3\n\nИмя: {data['name']}\nEmail: {email}\nВведите телефон (10-15 цифр):",
+            text=f"Регистрация {progress_bar(3, 3)}\n\nИмя: {data['name']}\nEmail: {email}\nВведите телефон (10-15 цифр):",
             inline_keyboard_markup=wzt_back_cancel_kb(back_step="email"),
         )
 
@@ -131,7 +115,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await fsm_context.set_state(WizardTextStates.entering_name)
         await safe_edit(
             event, bot,
-            "Регистрация -- Шаг 1/3\n\nВведите ваше полное имя:",
+            "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя:",
             wzt_back_cancel_kb(),
         )
 
@@ -141,7 +125,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Регистрация -- Шаг 2/3\n\nИмя: {data.get('name', '?')}\nВведите email:",
+            f"Регистрация {progress_bar(2, 3)}\n\nИмя: {data.get('name', '?')}\nВведите email:",
             wzt_back_cancel_kb(back_step="name"),
         )
 
@@ -151,6 +135,6 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         data = await fsm_context.get_data()
         await safe_edit(
             event, bot,
-            f"Регистрация -- Шаг 3/3\n\nИмя: {data.get('name', '?')}\nEmail: {data.get('email', '?')}\nВведите телефон:",
+            f"Регистрация {progress_bar(3, 3)}\n\nИмя: {data.get('name', '?')}\nEmail: {data.get('email', '?')}\nВведите телефон:",
             wzt_back_cancel_kb(back_step="email"),
         )
