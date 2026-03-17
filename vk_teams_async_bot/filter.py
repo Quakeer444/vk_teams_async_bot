@@ -110,8 +110,23 @@ class StateUserRegexFilter(MessageFilter):
 
     def filter(self, event):
         return super().filter(event) and self.user_state in self.now_user_state.get(
-            event.data["message"]["chat"]["chatId"], {}
+            event.data["chat"]["chatId"], {}
         ).get("state", {})
+
+
+class StateCallbackRegexFilter(FilterBase):
+    def __init__(self, user_state, now_user_state):
+        super(StateCallbackRegexFilter, self).__init__()
+        self.user_state = user_state
+        self.now_user_state = now_user_state
+
+    def filter(self, event):
+        return (
+            EventType.CALLBACK_QUERY is event.type
+            and self.user_state in self.now_user_state.get(
+                event.data["message"]["chat"]["chatId"], {}
+            ).get("state", {})
+        )
 
 
 class ReplyFilter(MessageFilter):
