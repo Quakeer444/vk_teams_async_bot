@@ -13,6 +13,7 @@ from vk_teams_async_bot.filters.composite import (
     MessageTextPartFromNickFilter,
     RegexpTextPartsFilter,
 )
+from vk_teams_async_bot.filters.chat import ChatIdFilter, ChatTypeFilter
 from vk_teams_async_bot.filters.message import (
     CommandFilter,
     MessageFilter,
@@ -245,6 +246,92 @@ def _mention_part_user(user_id: str = "user1") -> MentionPart:
         type=Parts.MENTION,
         payload=User(userId=user_id),
     )
+
+
+# -- ChatTypeFilter --
+
+
+class TestChatTypeFilter:
+    def test_single_type_match(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_new_message(chat_type=ChatType.PRIVATE)) is True
+
+    def test_single_type_no_match(self):
+        f = ChatTypeFilter(ChatType.GROUP)
+        assert f(_new_message(chat_type=ChatType.PRIVATE)) is False
+
+    def test_list_of_types_match(self):
+        f = ChatTypeFilter([ChatType.GROUP, ChatType.CHANNEL])
+        assert f(_new_message(chat_type=ChatType.GROUP)) is True
+
+    def test_list_of_types_no_match(self):
+        f = ChatTypeFilter([ChatType.GROUP, ChatType.CHANNEL])
+        assert f(_new_message(chat_type=ChatType.PRIVATE)) is False
+
+    def test_works_on_edited_message(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_edited_message()) is True
+
+    def test_works_on_callback_query(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_callback_query()) is True
+
+    def test_works_on_deleted_message(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_deleted_message()) is True
+
+    def test_works_on_pinned_message(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_pinned_message()) is True
+
+    def test_works_on_new_chat_members(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_new_chat_members()) is True
+
+    def test_callback_query_no_chat_returns_false(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert f(_callback_query_no_chat()) is False
+
+    def test_repr(self):
+        f = ChatTypeFilter(ChatType.PRIVATE)
+        assert repr(f) == "ChatTypeFilter(types=['private'])"
+
+
+# -- ChatIdFilter --
+
+
+class TestChatIdFilter:
+    def test_single_id_match(self):
+        f = ChatIdFilter("chat1")
+        assert f(_new_message(chat_id="chat1")) is True
+
+    def test_single_id_no_match(self):
+        f = ChatIdFilter("chat999")
+        assert f(_new_message(chat_id="chat1")) is False
+
+    def test_list_of_ids_match(self):
+        f = ChatIdFilter(["chat1", "chat2"])
+        assert f(_new_message(chat_id="chat2")) is True
+
+    def test_list_of_ids_no_match(self):
+        f = ChatIdFilter(["chat1", "chat2"])
+        assert f(_new_message(chat_id="chat3")) is False
+
+    def test_works_on_callback_query(self):
+        f = ChatIdFilter("chat1")
+        assert f(_callback_query(chat_id="chat1")) is True
+
+    def test_works_on_deleted_message(self):
+        f = ChatIdFilter("chat1")
+        assert f(_deleted_message()) is True
+
+    def test_callback_query_no_chat_returns_false(self):
+        f = ChatIdFilter("chat1")
+        assert f(_callback_query_no_chat()) is False
+
+    def test_repr(self):
+        f = ChatIdFilter("chat1")
+        assert repr(f) == "ChatIdFilter(chat_ids=['chat1'])"
 
 
 # -- MessageFilter --
