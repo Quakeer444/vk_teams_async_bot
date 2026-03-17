@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from typing import AsyncGenerator
+from typing import Annotated, AsyncGenerator
 
 import aiohttp
 
@@ -117,6 +117,22 @@ def register_di_handlers(dp: Dispatcher) -> None:
                 f"HTTP-сессия создана до обработчика и закрыта после. "
                 f"Очистка гарантирована даже при ошибке.\n\n"
                 f"IP бота: {ip_info}"
+            ),
+            inline_keyboard_markup=di_menu_kb(),
+        )
+
+    @dp.callback_query(CallbackDataFilter("di:annotated"))
+    async def di_annotated(event: CallbackQueryEvent, bot: Bot, cfg: Annotated[AppConfig, get_config]):
+        await bot.answer_callback_query(query_id=event.query_id)
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text=(
+                f"Annotated-зависимость\n\n"
+                f"Параметр объявлен как Annotated[AppConfig, get_config] -- "
+                f"вторым аргументом указана конкретная функция-провайдер.\n"
+                f"Это позволяет иметь несколько провайдеров одного типа.\n\n"
+                f"Приложение: {cfg.app_name}\n"
+                f"Версия: {cfg.version}"
             ),
             inline_keyboard_markup=di_menu_kb(),
         )

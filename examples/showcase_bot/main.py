@@ -114,8 +114,8 @@ async def main() -> None:
                     text="Нечего отменять.",
                 )
 
-        # /help command
-        @dp.message(CommandFilter("help"))
+        # /help command -- using @dp.command() shortcut (equivalent to CommandFilter)
+        @dp.command("help")
         async def cmd_help(event: NewMessageEvent, bot: Bot):
             await bot.send_text(
                 chat_id=event.chat.chat_id,
@@ -124,8 +124,20 @@ async def main() -> None:
                     "/start -- главное меню\n"
                     "/help -- это сообщение\n"
                     "/cancel -- выход из любого пошагового сценария\n"
-                    "/demo -- демо команда фильтров\n\n"
+                    "/demo -- демо команда фильтров\n"
+                    "/demo_cmd -- демо @dp.command()\n\n"
                     "Используйте кнопки меню для изучения всех возможностей."
+                ),
+            )
+
+        @dp.command("demo_cmd")
+        async def cmd_demo_cmd(event: NewMessageEvent, bot: Bot):
+            await bot.send_text(
+                chat_id=event.chat.chat_id,
+                text=(
+                    "Это обработчик зарегистрирован через @dp.command(\"demo_cmd\").\n\n"
+                    "@dp.command(cmd) -- это сокращение для @dp.message(CommandFilter(cmd)).\n"
+                    "Оба варианта полностью эквивалентны."
                 ),
             )
 

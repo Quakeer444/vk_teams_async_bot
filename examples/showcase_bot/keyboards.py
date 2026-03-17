@@ -18,8 +18,11 @@ def main_menu_kb() -> InlineKeyboardMarkup:
         ("События чата", "menu:evt"),
         ("Действия с сообщениями", "menu:msg"),
         ("Фильтры сообщений", "menu:flt"),
+        ("Новые фильтры", "menu:flt2"),
         ("Действия в чате", "menu:chat"),
         ("Зависимости в обработчиках", "menu:di"),
+        ("Обработка ошибок", "menu:err"),
+        ("Администрирование чата", "menu:adm"),
     ]
     for text, cb in sections:
         kb.add(KeyboardButton(text=text, callback_data=cb, style=StyleKeyboard.PRIMARY))
@@ -50,6 +53,15 @@ def buttons_showcase_kb() -> InlineKeyboardMarkup:
     kb.add(
         KeyboardButton(text="Кнопка A", callback_data="btn:2a"),
         KeyboardButton(text="Кнопка B", callback_data="btn:2b"),
+    )
+    kb.row(
+        KeyboardButton(text="Всплывающее уведомление", callback_data="btn:alert", style=StyleKeyboard.PRIMARY),
+    )
+    kb.row(
+        KeyboardButton(text="Открыть URL по callback", callback_data="btn:url", style=StyleKeyboard.PRIMARY),
+    )
+    kb.row(
+        KeyboardButton(text="Композиция клавиатур (+)", callback_data="btn:compose", style=StyleKeyboard.PRIMARY),
     )
     kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
     return kb
@@ -116,6 +128,7 @@ def formatting_menu_kb() -> InlineKeyboardMarkup:
         KeyboardButton(text="Format API", callback_data="fmt:api", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="HTML-разметка", callback_data="fmt:html", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="MarkdownV2-разметка", callback_data="fmt:md", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Списки (Format API)", callback_data="fmt:lists", style=StyleKeyboard.PRIMARY),
     )
     kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
     return kb
@@ -416,6 +429,28 @@ def filter_parts_kb() -> InlineKeyboardMarkup:
     return kb
 
 
+def filter_composite_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(buttons_in_row=1)
+    kb.add(
+        KeyboardButton(text="AND: ReplyFilter & FileFilter", callback_data="flt:comp:and", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="OR: FileFilter | VoiceFilter", callback_data="flt:comp:or", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="NOT: ~StickerFilter", callback_data="flt:comp:not", style=StyleKeyboard.PRIMARY),
+    )
+    kb.row(KeyboardButton(text="<< Назад", callback_data="flt:parts"))
+    return kb
+
+
+def filter_advanced_kb() -> InlineKeyboardMarkup:
+    kb = InlineKeyboardMarkup(buttons_in_row=1)
+    kb.add(
+        KeyboardButton(text="RegexpTextPartsFilter", callback_data="flt:adv:regexp", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="MessageTextPartFromNickFilter", callback_data="flt:adv:nick", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="CallbackDataRegexpFilter (info)", callback_data="flt:adv:cbregexp", style=StyleKeyboard.PRIMARY),
+    )
+    kb.row(KeyboardButton(text="<< Назад", callback_data="menu:flt"))
+    return kb
+
+
 # -- Chat Ops --
 
 def chat_ops_menu_kb() -> InlineKeyboardMarkup:
@@ -438,6 +473,7 @@ def di_menu_kb() -> InlineKeyboardMarkup:
         KeyboardButton(text="Синхронная зависимость", callback_data="di:sync", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="Асинхронная зависимость", callback_data="di:async", style=StyleKeyboard.PRIMARY),
         KeyboardButton(text="Генератор-зависимость", callback_data="di:generator", style=StyleKeyboard.PRIMARY),
+        KeyboardButton(text="Annotated-зависимость", callback_data="di:annotated", style=StyleKeyboard.PRIMARY),
     )
     kb.row(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
     return kb

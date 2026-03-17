@@ -41,3 +41,21 @@ class FilterDemoStates(StatesGroup):
     waiting_for_file = State()
     waiting_for_voice = State()
     waiting_for_mention = State()
+    waiting_for_sticker = State()
+    waiting_for_and = State()
+    waiting_for_or = State()
+    waiting_for_not = State()
+    waiting_for_regexp_parts = State()
+    waiting_for_nick_parts = State()
+
+
+class NewFilterDemoStates(StatesGroup):
+    waiting_for_text_filter = State()
+    waiting_for_filetype = State()
+    waiting_for_from_user = State()
+
+
+class ChatAdminStates(StatesGroup):
+    entering_title = State()
+    entering_about = State()
+    entering_rules = State()

@@ -61,11 +61,11 @@ class TestFilePart:
     def test_basic(self) -> None:
         raw = {
             "type": "file",
-            "payload": {"fileId": "f1", "type": "image/png"},
+            "payload": {"fileId": "f1", "type": "image"},
         }
         part = FilePart.model_validate(raw)
         assert part.payload.file_id == "f1"
-        assert part.payload.type == "image/png"
+        assert part.payload.type == "image"
         assert part.payload.caption is None
 
     def test_with_caption_and_format(self) -> None:

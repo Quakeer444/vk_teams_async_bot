@@ -117,3 +117,42 @@ def register_formatting_handlers(dp: Dispatcher) -> None:
             parse_mode=ParseMode.MARKDOWNV2,
             inline_keyboard_markup=back_to_main_kb(),
         )
+
+    @dp.callback_query(CallbackDataFilter("fmt:lists"))
+    async def fmt_lists(event: CallbackQueryEvent, bot: Bot):
+        text = (
+            "Нумерованный список:\n"
+            "Первый элемент\n"
+            "Второй элемент\n"
+            "Третий элемент\n"
+            "Маркированный список:\n"
+            "Яблоко\n"
+            "Банан\n"
+            "Вишня"
+        )
+        fmt = Format()
+        # "Нумерованный список:\n" = 22 chars
+        offset = 22
+        # Each item: "Первый элемент\n" = 15, "Второй элемент\n" = 15, "Третий элемент\n" = 15
+        fmt.add(StyleType.ORDERED_LIST, offset, 14)
+        offset += 15
+        fmt.add(StyleType.ORDERED_LIST, offset, 14)
+        offset += 15
+        fmt.add(StyleType.ORDERED_LIST, offset, 14)
+        offset += 15
+        # "Маркированный список:\n" = 22 chars
+        offset += 22
+        # "Яблоко\n" = 7, "Банан\n" = 6, "Вишня" = 5
+        fmt.add(StyleType.UNORDERED_LIST, offset, 6)
+        offset += 7
+        fmt.add(StyleType.UNORDERED_LIST, offset, 5)
+        offset += 6
+        fmt.add(StyleType.UNORDERED_LIST, offset, 5)
+
+        await bot.answer_callback_query(query_id=event.query_id)
+        await bot.send_text(
+            chat_id=event.chat.chat_id,
+            text=text,
+            format_=fmt,
+            inline_keyboard_markup=back_to_main_kb(),
+        )

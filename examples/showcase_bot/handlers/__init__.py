@@ -2,11 +2,14 @@ from vk_teams_async_bot import Dispatcher
 from vk_teams_async_bot.fsm.storage.base import BaseStorage
 
 from .buttons import register_buttons_handlers
+from .chat_admin import register_chat_admin_handlers
 from .chat_ops import register_chat_ops_handlers
 from .di_demo import register_di_handlers
+from .error_demo import register_error_handlers
 from .events import register_events_handlers
 from .files import register_files_handlers
 from .filters_demo import register_filters_handlers
+from .filters_new import register_new_filters_handlers
 from .formatting import register_formatting_handlers
 from .messages import register_messages_handlers
 from .multiselect import register_multiselect_handlers
@@ -40,9 +43,15 @@ def register_all_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     register_messages_handlers(dp)
     # 11. Filters demo
     register_filters_handlers(dp, storage)
-    # 12. Chat ops
+    # 12. New filters demo
+    register_new_filters_handlers(dp, storage)
+    # 13. Chat ops
     register_chat_ops_handlers(dp)
-    # 13. DI
+    # 14. DI
     register_di_handlers(dp)
-    # 14. Events (register last -- catch-all event handlers)
+    # 15. Error handling demo
+    register_error_handlers(dp)
+    # 16. Chat admin demo
+    register_chat_admin_handlers(dp, storage)
+    # 17. Events (MUST be last -- catch-all event handlers)
     register_events_handlers(dp)
