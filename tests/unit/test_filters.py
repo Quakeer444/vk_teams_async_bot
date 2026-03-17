@@ -61,8 +61,8 @@ from vk_teams_async_bot.types.user import User
 # -- Helpers --
 
 
-def _chat(chat_id: str = "chat1") -> EventChatRef:
-    return EventChatRef(chatId=chat_id, type=ChatType.PRIVATE)
+def _chat(chat_id: str = "chat1", chat_type: ChatType = ChatType.PRIVATE) -> EventChatRef:
+    return EventChatRef(chatId=chat_id, type=chat_type)
 
 
 def _user(user_id: str = "user1", nick: str | None = None) -> User:
@@ -75,11 +75,12 @@ def _new_message(
     chat_id: str = "chat1",
     user_id: str = "user1",
     nick: str | None = None,
+    chat_type: ChatType = ChatType.PRIVATE,
 ) -> NewMessageEvent:
     return NewMessageEvent(
         eventId=1,
         type=EventType.NEW_MESSAGE,
-        chat=_chat(chat_id),
+        chat=_chat(chat_id, chat_type),
         **{"from": _user(user_id, nick)},
         msgId="msg1",
         text=text,
@@ -216,6 +217,33 @@ def _reply_part(text: str = "reply text", nick: str | None = None) -> ReplyPart:
     return ReplyPart(
         type=Parts.REPLY,
         payload=ReplyPartPayload(message=_nested_message(text, nick)),
+    )
+
+
+def _callback_query_no_chat(
+    callback_data: str = "btn_ok",
+    user_id: str = "user1",
+) -> CallbackQueryEvent:
+    return CallbackQueryEvent(
+        eventId=2,
+        type=EventType.CALLBACK_QUERY,
+        **{"from": _user(user_id)},
+        queryId="q1",
+        callbackData=callback_data,
+    )
+
+
+def _file_part_typed(file_type: str | None = None) -> FilePart:
+    return FilePart(
+        type=Parts.FILE,
+        payload=FilePartPayload(fileId="f1", type=file_type),
+    )
+
+
+def _mention_part_user(user_id: str = "user1") -> MentionPart:
+    return MentionPart(
+        type=Parts.MENTION,
+        payload=User(userId=user_id),
     )
 
 
