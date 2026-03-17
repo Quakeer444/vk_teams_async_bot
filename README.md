@@ -6,38 +6,17 @@
 
 # vk-teams-async-bot
 
-`vk-teams-async-bot` -- асинхронная Python-библиотека для создания ботов VK Teams.
+`vk-teams-async-bot` -- асинхронная Python-библиотека для создания ботов [VK Teams](https://teams.vk.com/botapi/). Архитектура вдохновлена [aiogram](https://github.com/aiogram/aiogram).
 
-Она объединяет две роли в одном пакете:
+Один пакет объединяет две роли:
 
-- удобный клиент для VK Teams Bot API;
-- фреймворк для long polling, обработчиков, фильтров, FSM, middleware и dependency injection.
+- **API-клиент** -- типизированные вызовы всех 27 методов VK Teams Bot API с retry и обработкой ошибок;
+- **Фреймворк** -- long polling, диспетчер с декораторами, фильтры, FSM, middleware и dependency injection.
 
-## Почему библиотека удобна
-
-- В репозитории есть полноценный `showcase bot` в `examples/showcase_bot`: он показывает сообщения, кнопки, навигацию и пагинацию, FSM-сценарии, форматирование, файлы, события, операции с сообщениями и dependency injection.
-- Один пакет закрывает и прямую работу с VK Teams Bot API, и событийную обработку бота через polling, диспетчер, фильтры и состояния.
-- Типизированные модели, фильтры, middleware и DI помогают писать обработчики понятнее и с меньшим количеством ручного кода.
-
-## Context7
-
-Этот раздел нужен только тем, кто работает через MCP/LLM-ассистентов. Если вы читаете README как обычный разработчик, его можно пропустить.
-
-Если вы используете MCP `Context7`, документация по `vk-teams-async-bot` уже доступна в каталоге:
-
-https://context7.com/quakeer444/vk_teams_async_bot
-
-Чтобы ассистент автоматически обращался к ней, добавьте в `CLAUDE.md` или `AGENTS.md` такую инструкцию:
-
-```md
-Always use Context7 when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
-For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakeer444/vk_teams_async_bot
-```
+Всё построено на asyncio, aiohttp и Pydantic v2.
 
 ## Содержание
 
-- [Почему библиотека удобна](#почему-библиотека-удобна)
-- [Context7](#context7)
 - [Что это за библиотека](#что-это-за-библиотека)
 - [Что есть внутри](#что-есть-внутри)
 - [Что важно знать заранее](#что-важно-знать-заранее)
@@ -45,15 +24,6 @@ For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakee
 - [Быстрый старт](#быстрый-старт)
 - [Основные понятия](#основные-понятия)
 - [Примеры](#примеры)
-  - [Обработка команд](#обработка-команд)
-  - [Инлайн-клавиатура](#инлайн-клавиатура)
-  - [Фильтры и их композиция](#фильтры-и-их-композиция)
-  - [Форматирование текста](#форматирование-текста)
-  - [FSM: пошаговые сценарии](#fsm-пошаговые-сценарии)
-  - [Middleware](#middleware)
-  - [Работа с файлами](#работа-с-файлами)
-  - [Dependency Injection](#dependency-injection)
-  - [Хуки жизненного цикла](#хуки-жизненного-цикла)
 - [Поддерживаемые события](#поддерживаемые-события)
 - [Реализованные методы API](#реализованные-методы-api)
 - [Обработка ошибок и retry](#обработка-ошибок-и-retry)
@@ -61,11 +31,14 @@ For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakee
 - [Как устроен проект](#как-устроен-проект)
 - [Локальная разработка](#локальная-разработка)
 - [Миграция с 0.2.x](#миграция-с-02x)
+- [Context7](#context7)
 - [Лицензия](#лицензия)
 
 ## Что это за библиотека
 
-Эта библиотека подходит, если вы хотите:
+Один пакет закрывает и прямую работу с [VK Teams Bot API](https://teams.vk.com/botapi/), и событийную обработку бота через polling, диспетчер, фильтры и состояния.
+
+Библиотека подходит, если вы хотите:
 
 - быстро поднять бота на Python без ручной работы с HTTP-запросами;
 - обрабатывать события через декораторы `@dp.message()`, `@dp.callback_query()` и другие;
@@ -74,7 +47,7 @@ For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakee
 - добавлять middleware и зависимости в обработчики;
 - при необходимости вызывать методы API напрямую через `Bot`.
 
-Она особенно удобна, когда нужен один пакет и для прямой работы с VK Teams Bot API, и для событийной обработки бота через декораторы, фильтры и состояния.
+В репозитории есть полноценный `showcase bot` в `examples/showcase_bot/`: он показывает сообщения, кнопки, навигацию и пагинацию, FSM-сценарии, форматирование, файлы, события, операции с сообщениями и dependency injection.
 
 ## Что есть внутри
 
@@ -98,8 +71,11 @@ For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakee
 - `MemoryStorage` удобно использовать в разработке. Для продакшена лучше реализовать `BaseStorage` поверх Redis или БД.
 - Методы `create_chat()` и `add_chat_members()` доступны только в специальных on-premise сборках VK Teams и требуют настройки со стороны администратора.
 - Неизвестные типы событий парсятся в `RawUnknownEvent` и пропускаются диспетчером без падения приложения.
+- Библиотека поставляется с маркером `py.typed` и совместима с mypy и pyright.
 
 ## Установка
+
+Требуется Python 3.11+. Зависимости: aiohttp >= 3.9.1, pydantic >= 2.5.2.
 
 ```bash
 pip install vk-teams-async-bot
@@ -277,14 +253,20 @@ async def on_primary(event: CallbackQueryEvent, bot: Bot):
 ```python
 from vk_teams_async_bot import (
     CallbackDataRegexpFilter,
+    ChatIdFilter,
+    ChatTypeFilter,
     CommandFilter,
     FileFilter,
+    FileTypeFilter,
     ForwardFilter,
+    FromUserFilter,
     MentionFilter,
+    MentionUserFilter,
     RegexpFilter,
     ReplyFilter,
     StickerFilter,
     TagFilter,
+    TextFilter,
     VoiceFilter,
 )
 
@@ -326,16 +308,22 @@ async def on_item(event, bot): ...
 | Фильтр | Что делает |
 |--------|------------|
 | `MessageFilter()` | Совпадает с любым новым сообщением |
+| `TextFilter()` | Сообщение содержит непустой текст (без пробелов) |
 | `CommandFilter("start")` | Совпадает с командой `/start` |
 | `RegexpFilter(pattern)` | Ищет регулярное выражение в тексте сообщения |
 | `TagFilter(tags)` | Проверяет точное совпадение текста с одним из значений |
+| `ChatTypeFilter(ChatType.PRIVATE)` | Фильтр по типу чата (private/group/channel) |
+| `ChatIdFilter("chat123")` | Ограничение бота конкретными чатами |
+| `FromUserFilter("user_id")` | Фильтр по отправителю (user_id) |
 | `CallbackDataFilter(data)` | Проверяет точное совпадение `callback_data` |
 | `CallbackDataRegexpFilter(pattern)` | Проверяет `callback_data` по regex |
 | `StateFilter(state[, storage])` | Проверяет текущее FSM-состояние |
 | `FileFilter()` | Сообщение содержит файл |
+| `FileTypeFilter("image")` | Фильтр файлов по типу (image/audio/video) |
 | `VoiceFilter()` | Сообщение содержит голосовое сообщение |
 | `StickerFilter()` | Сообщение содержит стикер |
 | `MentionFilter()` | Сообщение содержит упоминание |
+| `MentionUserFilter("user_id")` | Сообщение содержит упоминание конкретного пользователя |
 | `ReplyFilter()` | Сообщение является ответом |
 | `ForwardFilter()` | Сообщение является пересланным |
 | `RegexpTextPartsFilter(pattern)` | Ищет regex в текстовых частях ответа или пересланного сообщения |
@@ -590,7 +578,7 @@ bot.depends.extend([get_config, get_session])
 async def handler(
     event: NewMessageEvent,
     bot: Bot,
-    config: get_config,
+    config: get_config,  # функция-фабрика как аннотация -- DI-конвенция библиотеки
     session: Annotated[aiohttp.ClientSession, get_session],
 ):
     async with session.get("https://example.com") as resp:
@@ -756,7 +744,6 @@ bot = Bot(
 - `vk_teams_async_bot/filters/` -- фильтры сообщений, callback'ов, состояний и частей сообщений.
 - `vk_teams_async_bot/fsm/` -- состояния, контекст и хранилища.
 - `vk_teams_async_bot/middleware/` -- базовый middleware, менеджер цепочки, таймаут сессий.
-- `tests/unit/` и `tests/integration/` -- unit и integration tests.
 
 ## Локальная разработка
 
@@ -783,7 +770,22 @@ poetry run pyright
 
 ## Миграция с 0.2.x
 
-Версия `1.0.0` содержит архитектурные изменения. Подробности и примеры "до / после" смотрите в [MIGRATION.md](MIGRATION.md).
+Текущая версия -- `1.0.0`. Она содержит архитектурные изменения по сравнению с `0.2.x`. Подробности и примеры "до / после" смотрите в [MIGRATION.md](MIGRATION.md).
+
+## Context7
+
+Этот раздел нужен только тем, кто работает через MCP/LLM-ассистентов. Если вы читаете README как обычный разработчик, его можно пропустить.
+
+Если вы используете MCP `Context7`, документация по `vk-teams-async-bot` уже доступна в каталоге:
+
+https://context7.com/quakeer444/vk_teams_async_bot
+
+Чтобы ассистент автоматически обращался к ней, добавьте в `CLAUDE.md` или `AGENTS.md` такую инструкцию:
+
+```md
+Always use Context7 when I need library/API documentation, code generation, setup or configuration steps without me having to explicitly ask.
+For `vk-teams-async-bot` documentation use Context7: https://context7.com/quakeer444/vk_teams_async_bot
+```
 
 ## Лицензия
 
