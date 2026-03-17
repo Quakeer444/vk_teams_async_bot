@@ -18,6 +18,18 @@ class MessageFilter(FilterBase):
         return "MessageFilter()"
 
 
+class TextFilter(FilterBase):
+    """Match NewMessageEvent that has non-empty, non-whitespace text."""
+
+    def __call__(self, event: BaseEvent) -> bool:
+        if not isinstance(event, NewMessageEvent):
+            return False
+        return bool(event.text and event.text.strip())
+
+    def __repr__(self) -> str:
+        return "TextFilter()"
+
+
 class RegexpFilter(FilterBase):
     """Match message text against a regular expression."""
 

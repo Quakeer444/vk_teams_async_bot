@@ -19,15 +19,19 @@ from vk_teams_async_bot.filters.message import (
     MessageFilter,
     RegexpFilter,
     TagFilter,
+    TextFilter,
 )
 from vk_teams_async_bot.filters.parts import (
     FileFilter,
+    FileTypeFilter,
     ForwardFilter,
     MentionFilter,
+    MentionUserFilter,
     ReplyFilter,
     StickerFilter,
     VoiceFilter,
 )
+from vk_teams_async_bot.filters.user import FromUserFilter
 from vk_teams_async_bot.filters.state import StateFilter
 from vk_teams_async_bot.fsm.state import State, StatesGroup
 from vk_teams_async_bot.fsm.storage.memory import MemoryStorage
@@ -334,6 +338,47 @@ class TestChatIdFilter:
         assert repr(f) == "ChatIdFilter(chat_ids=['chat1'])"
 
 
+# -- FromUserFilter --
+
+
+class TestFromUserFilter:
+    def test_single_user_match(self):
+        f = FromUserFilter("user1")
+        assert f(_new_message(user_id="user1")) is True
+
+    def test_single_user_no_match(self):
+        f = FromUserFilter("user999")
+        assert f(_new_message(user_id="user1")) is False
+
+    def test_list_of_users_match(self):
+        f = FromUserFilter(["user1", "user2"])
+        assert f(_new_message(user_id="user2")) is True
+
+    def test_list_of_users_no_match(self):
+        f = FromUserFilter(["user1", "user2"])
+        assert f(_new_message(user_id="user3")) is False
+
+    def test_works_on_edited_message(self):
+        f = FromUserFilter("user1")
+        assert f(_edited_message(user_id="user1")) is True
+
+    def test_works_on_callback_query(self):
+        f = FromUserFilter("user1")
+        assert f(_callback_query(user_id="user1")) is True
+
+    def test_rejects_event_without_from(self):
+        f = FromUserFilter("user1")
+        assert f(_deleted_message()) is False
+
+    def test_rejects_new_chat_members(self):
+        f = FromUserFilter("user1")
+        assert f(_new_chat_members()) is False
+
+    def test_repr(self):
+        f = FromUserFilter("user1")
+        assert repr(f) == "FromUserFilter(user_ids=['user1'])"
+
+
 # -- MessageFilter --
 
 
@@ -408,6 +453,35 @@ class TestCommandFilter:
         f = CommandFilter("/start")
         assert f(_new_message("/start")) is True
         assert f.command == "start"
+
+
+# -- TextFilter --
+
+
+class TestTextFilter:
+    def test_message_with_text(self):
+        f = TextFilter()
+        assert f(_new_message(text="hello")) is True
+
+    def test_message_with_empty_string(self):
+        f = TextFilter()
+        assert f(_new_message(text="")) is False
+
+    def test_message_with_whitespace_only(self):
+        f = TextFilter()
+        assert f(_new_message(text="   ")) is False
+
+    def test_message_with_none_text(self):
+        f = TextFilter()
+        assert f(_new_message(text=None)) is False
+
+    def test_wrong_event_type(self):
+        f = TextFilter()
+        assert f(_callback_query()) is False
+
+    def test_repr(self):
+        f = TextFilter()
+        assert repr(f) == "TextFilter()"
 
 
 # -- TagFilter --
@@ -584,6 +658,98 @@ class TestMentionFilter:
     def test_wrong_event_type(self):
         f = MentionFilter()
         assert f(_callback_query()) is False
+
+
+# -- FileTypeFilter --
+
+
+class TestFileTypeFilter:
+    def test_image_match(self):
+        f = FileTypeFilter("image")
+        assert f(_new_message(parts=[_file_part_typed("image")])) is True
+
+    def test_video_match(self):
+        f = FileTypeFilter("video")
+        assert f(_new_message(parts=[_file_part_typed("video")])) is True
+
+    def test_type_no_match(self):
+        f = FileTypeFilter("image")
+        assert f(_new_message(parts=[_file_part_typed("audio")])) is False
+
+    def test_list_of_types_match(self):
+        f = FileTypeFilter(["image", "video"])
+        assert f(_new_message(parts=[_file_part_typed("video")])) is True
+
+    def test_list_of_types_no_match(self):
+        f = FileTypeFilter(["image", "video"])
+        assert f(_new_message(parts=[_file_part_typed("audio")])) is False
+
+    def test_file_without_type(self):
+        f = FileTypeFilter("image")
+        assert f(_new_message(parts=[_file_part_typed(None)])) is False
+
+    def test_no_file_parts(self):
+        f = FileTypeFilter("image")
+        assert f(_new_message(parts=[_sticker_part()])) is False
+
+    def test_no_parts(self):
+        f = FileTypeFilter("image")
+        assert f(_new_message(parts=None)) is False
+
+    def test_multiple_file_parts_one_matches(self):
+        f = FileTypeFilter("image")
+        event = _new_message(parts=[_file_part_typed("audio"), _file_part_typed("image")])
+        assert f(event) is True
+
+    def test_wrong_event_type(self):
+        f = FileTypeFilter("image")
+        assert f(_callback_query()) is False
+
+    def test_repr(self):
+        f = FileTypeFilter("image")
+        assert repr(f) == "FileTypeFilter(types=['image'])"
+
+
+# -- MentionUserFilter --
+
+
+class TestMentionUserFilter:
+    def test_single_user_match(self):
+        f = MentionUserFilter("user1")
+        assert f(_new_message(parts=[_mention_part_user("user1")])) is True
+
+    def test_single_user_no_match(self):
+        f = MentionUserFilter("user1")
+        assert f(_new_message(parts=[_mention_part_user("user2")])) is False
+
+    def test_list_of_users_match(self):
+        f = MentionUserFilter(["user1", "user2"])
+        assert f(_new_message(parts=[_mention_part_user("user2")])) is True
+
+    def test_list_of_users_no_match(self):
+        f = MentionUserFilter(["user1", "user2"])
+        assert f(_new_message(parts=[_mention_part_user("user3")])) is False
+
+    def test_multiple_mentions_one_matches(self):
+        f = MentionUserFilter("user2")
+        event = _new_message(parts=[_mention_part_user("user1"), _mention_part_user("user2")])
+        assert f(event) is True
+
+    def test_no_mention_parts(self):
+        f = MentionUserFilter("user1")
+        assert f(_new_message(parts=[_sticker_part()])) is False
+
+    def test_no_parts(self):
+        f = MentionUserFilter("user1")
+        assert f(_new_message(parts=None)) is False
+
+    def test_wrong_event_type(self):
+        f = MentionUserFilter("user1")
+        assert f(_callback_query()) is False
+
+    def test_repr(self):
+        f = MentionUserFilter("user1")
+        assert repr(f) == "MentionUserFilter(user_ids=['user1'])"
 
 
 # -- RegexpTextPartsFilter --
