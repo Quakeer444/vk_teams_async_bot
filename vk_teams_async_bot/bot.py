@@ -60,6 +60,7 @@ class Bot(
         retry_policy: RetryPolicy | None = None,
         shutdown_timeout: float = 30.0,
         max_concurrent_handlers: int = 100,
+        max_download_size: int = 100 * 1024 * 1024,
     ) -> None:
         self._session = VKTeamsSession(
             base_url=url,
@@ -68,6 +69,7 @@ class Bot(
             timeout=timeout,
             ssl=ssl,
             retry_policy=retry_policy,
+            max_download_size=max_download_size,
         )
         self.poll_time = poll_time
         self.last_event_id = last_event_id

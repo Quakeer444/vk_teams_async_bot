@@ -423,3 +423,18 @@ class TestSessionDownload:
                 m.get(DOWNLOAD_URL_RE, exception=asyncio.TimeoutError())
             with pytest.raises(TimeoutError):
                 await session.download(DOWNLOAD_URL)
+
+    @pytest.mark.asyncio
+    async def test_download_rejects_oversized_response(
+        self, no_retry_policy: RetryPolicy
+    ) -> None:
+        """Download should reject responses exceeding max_download_size."""
+        large_body = b"x" * 1024  # 1KB
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
+        ) as session:
+            session._max_download_size = 512  # 512 bytes limit
+            with aioresponses() as m:
+                m.get(DOWNLOAD_URL_RE, body=large_body)
+                with pytest.raises(APIError, match="exceeds maximum"):
+                    await session.download(DOWNLOAD_URL)

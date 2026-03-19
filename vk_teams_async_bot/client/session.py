@@ -45,6 +45,7 @@ class VKTeamsSession:
         timeout: int = 30,
         ssl: bool | ssl_lib.SSLContext | None = None,
         retry_policy: RetryPolicy | None = None,
+        max_download_size: int = 100 * 1024 * 1024,  # 100MB
     ) -> None:
         self._base_url = base_url
         self._base_path = base_path
@@ -52,6 +53,7 @@ class VKTeamsSession:
         self._timeout = timeout
         self._ssl: bool | ssl_lib.SSLContext | None = ssl
         self._retry_policy = retry_policy or RetryPolicy()
+        self._max_download_size = max_download_size
         self._session: ClientSession | None = None
         self._download_session: ClientSession | None = None
         self._session_lock = asyncio.Lock()
@@ -138,7 +140,29 @@ class VKTeamsSession:
                         raise APIError(
                             resp.status, f"HTTP {resp.status} downloading {url}"
                         )
-                    return await resp.read()
+                    content_length = resp.content_length
+                    if (
+                        content_length is not None
+                        and content_length > self._max_download_size
+                    ):
+                        raise APIError(
+                            resp.status,
+                            f"File size {content_length} exceeds maximum "
+                            f"download size {self._max_download_size}",
+                        )
+
+                    chunks: list[bytes] = []
+                    total = 0
+                    async for chunk in resp.content.iter_chunked(64 * 1024):
+                        total += len(chunk)
+                        if total > self._max_download_size:
+                            raise APIError(
+                                resp.status,
+                                f"Download size exceeds maximum "
+                                f"{self._max_download_size}",
+                            )
+                        chunks.append(chunk)
+                    return b"".join(chunks)
             except _RETRIABLE_ERRORS as exc:
                 last_error = exc
                 if attempt < policy.max_retries:
