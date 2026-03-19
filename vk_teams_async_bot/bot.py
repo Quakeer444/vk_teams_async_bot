@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import signal
 from typing import Any, Awaitable, Callable, Sequence
 
@@ -191,7 +192,8 @@ class Bot(
         """Signal handler: first call stops polling gracefully, second forces exit."""
         if not self._running:
             logger.info("Forced shutdown")
-            raise SystemExit(1)
+            os._exit(1)  # noqa: SLF001 -- hard kill on second Ctrl+C
+            return
         logger.info("Received shutdown signal, press Ctrl+C again to force exit")
         self._running = False
 
@@ -199,6 +201,7 @@ class Bot(
         """Core polling loop: fetch events and dispatch them."""
         backoff = 0.0
         max_backoff = 60.0
+        _sweep_counter = 0
         while self._running:
             try:
                 events = await self.get_events(
@@ -212,6 +215,11 @@ class Bot(
                     task = asyncio.create_task(self._safe_dispatch(dispatcher, event))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._task_done)
+
+                _sweep_counter += 1
+                if _sweep_counter >= 1000:
+                    dispatcher._sweep_idle_locks()
+                    _sweep_counter = 0
 
             except Exception as exc:
                 if not self._running:

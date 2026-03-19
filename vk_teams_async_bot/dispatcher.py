@@ -268,6 +268,21 @@ class Dispatcher:
             await handler.handle(event, bot, extra_kwargs=data)
             return
 
+    def _sweep_idle_locks(self) -> None:
+        """Remove user locks not currently held and without pending waiters.
+
+        Safe to call periodically: coroutines already holding a lock
+        reference continue to work even after the key is removed from
+        the dict.
+        """
+        idle_keys = [
+            k
+            for k, v in self._user_locks.items()
+            if not v.locked() and not getattr(v, "_waiters", [])
+        ]
+        for k in idle_keys:
+            del self._user_locks[k]
+
     def _inject_storage(self, handler: BaseHandler) -> None:
         """Ensure StateFilter instances have a reference to the storage."""
         if not handler.filters:

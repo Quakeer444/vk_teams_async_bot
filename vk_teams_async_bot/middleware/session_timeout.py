@@ -67,7 +67,12 @@ class SessionTimeoutMiddleware(BaseMiddleware):
     async def _checker_loop(self) -> None:
         while True:
             await asyncio.sleep(self._check_interval)
-            await self._cleanup_expired()
+            try:
+                await self._cleanup_expired()
+            except asyncio.CancelledError:
+                raise
+            except Exception:
+                logger.exception("Error in session timeout cleanup")
 
     async def _cleanup_expired(self) -> None:
         now = datetime.now()

@@ -153,3 +153,25 @@ class TestOnTimeoutCallback:
 
         await mw._cleanup_expired()  # should not raise
         assert key not in mw._timestamps
+
+
+class TestCheckerLoopResilience:
+    @pytest.mark.asyncio
+    async def test_checker_loop_survives_cleanup_error(self, storage: MemoryStorage):
+        """Checker loop should not die if cleanup raises."""
+        mw = SessionTimeoutMiddleware(storage, timeout=300, check_interval=0.01)
+        original_cleanup = mw._cleanup_expired
+        call_count = 0
+
+        async def failing_cleanup():
+            nonlocal call_count
+            call_count += 1
+            if call_count == 1:
+                raise RuntimeError("storage error")
+            await original_cleanup()
+
+        mw._cleanup_expired = failing_cleanup
+        mw._ensure_checker_running()
+        await asyncio.sleep(0.05)
+        assert call_count >= 2  # Loop survived the first error
+        await mw.close()
