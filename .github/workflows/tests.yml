@@ -32,7 +32,7 @@ jobs:
         run: poetry install --with dev
 
       - name: Run unit tests
-        run: poetry run pytest tests/unit/ -v --tb=short
+        run: poetry run pytest tests/unit/ -v --tb=short --cov=vk_teams_async_bot --cov-report=term-missing --cov-fail-under=60
 
       - name: Run integration tests
         run: poetry run pytest tests/integration/ -v --tb=short

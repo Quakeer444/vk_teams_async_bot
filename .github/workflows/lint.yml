@@ -36,3 +36,6 @@ jobs:
 
       - name: Run pyright
         run: poetry run pyright
+
+      - name: Type check (mypy)
+        run: poetry run mypy vk_teams_async_bot/
