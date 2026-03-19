@@ -1,9 +1,17 @@
 """VK Teams Async Bot -- async Python library for VK Teams Bot API."""
 
+try:
+    from importlib.metadata import version as _get_version
+
+    __version__ = _get_version("vk-teams-async-bot")
+except Exception:
+    __version__ = "0.0.0"
+
 from .bot import Bot
 
 __all__ = [
     # core
+    "__version__",
     "Bot",
     "Dispatcher",
     # errors

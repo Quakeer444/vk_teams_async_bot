@@ -246,7 +246,11 @@ class Dispatcher:
         data: dict[str, Any],
     ) -> None:
         """Find the first matching handler and execute it."""
-        assert isinstance(event, BaseEvent)  # RawUnknownEvent filtered in feed_event
+        if not isinstance(event, BaseEvent):
+            logger.debug(
+                "Skipping non-BaseEvent in dispatch: %s", type(event).__name__
+            )
+            return
         bot = data["bot"]
 
         for handler in self.handlers:

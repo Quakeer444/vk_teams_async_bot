@@ -29,7 +29,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await safe_edit(
             event,
             bot,
-            "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя (имя и фамилия):",
+            f"Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя (имя и фамилия):",
             wzt_back_cancel_kb(),
         )
 
@@ -121,7 +121,7 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await safe_edit(
             event,
             bot,
-            "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя:",
+            f"Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя:",
             wzt_back_cancel_kb(),
         )
 

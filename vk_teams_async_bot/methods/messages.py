@@ -50,12 +50,6 @@ def _serialize_format(fmt: Any | None) -> str | None:
     raise TypeError(f"Unsupported format_ type: {type(fmt)}")
 
 
-def _serialize_msg_ids(value: Any | None) -> Any | None:
-    """Pass msg_id values through unchanged.
-    Lists are handled by session._build_params() as repeated query params.
-    """
-    return value
-
 
 def _validate_reply_forward(
     reply_msg_id: Any | None,
@@ -154,9 +148,9 @@ class MessageMethods(BaseMethods):
             "/messages/sendText",
             chatId=chat_id,
             text=text,
-            replyMsgId=_serialize_msg_ids(reply_msg_id),
+            replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
-            forwardMsgId=_serialize_msg_ids(forward_msg_id),
+            forwardMsgId=forward_msg_id,
             inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
             format=_serialize_format(format_),
             parseMode=parse_mode.value if parse_mode else None,
@@ -195,9 +189,9 @@ class MessageMethods(BaseMethods):
                 chatId=chat_id,
                 fileId=file_id,
                 caption=caption,
-                replyMsgId=_serialize_msg_ids(reply_msg_id),
+                replyMsgId=reply_msg_id,
                 forwardChatId=forward_chat_id,
-                forwardMsgId=_serialize_msg_ids(forward_msg_id),
+                forwardMsgId=forward_msg_id,
                 inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
                 format=_serialize_format(format_),
                 parseMode=parse_mode.value if parse_mode else None,
@@ -211,9 +205,9 @@ class MessageMethods(BaseMethods):
             data=form,
             chatId=chat_id,
             caption=caption,
-            replyMsgId=_serialize_msg_ids(reply_msg_id),
+            replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
-            forwardMsgId=_serialize_msg_ids(forward_msg_id),
+            forwardMsgId=forward_msg_id,
             inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
             format=_serialize_format(format_),
             parseMode=parse_mode.value if parse_mode else None,
@@ -247,9 +241,9 @@ class MessageMethods(BaseMethods):
                 "/messages/sendVoice",
                 chatId=chat_id,
                 fileId=file_id,
-                replyMsgId=_serialize_msg_ids(reply_msg_id),
+                replyMsgId=reply_msg_id,
                 forwardChatId=forward_chat_id,
-                forwardMsgId=_serialize_msg_ids(forward_msg_id),
+                forwardMsgId=forward_msg_id,
                 inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
             )
             return FileUploadResponse.model_validate(raw)
@@ -259,9 +253,9 @@ class MessageMethods(BaseMethods):
             "/messages/sendVoice",
             data=form,
             chatId=chat_id,
-            replyMsgId=_serialize_msg_ids(reply_msg_id),
+            replyMsgId=reply_msg_id,
             forwardChatId=forward_chat_id,
-            forwardMsgId=_serialize_msg_ids(forward_msg_id),
+            forwardMsgId=forward_msg_id,
             inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
         )
         return FileUploadResponse.model_validate(raw)
@@ -305,7 +299,7 @@ class MessageMethods(BaseMethods):
         raw = await self._session.get(
             "/messages/deleteMessages",
             chatId=chat_id,
-            msgId=_serialize_msg_ids(msg_id),
+            msgId=msg_id,
         )
         return OkResponse.model_validate(raw)
 
