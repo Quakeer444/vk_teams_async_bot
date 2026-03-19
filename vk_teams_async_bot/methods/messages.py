@@ -32,7 +32,8 @@ def _serialize_keyboard(
     if isinstance(markup, str):
         return markup
     # InlineKeyboardMarkup or any object with .to_json()
-    return markup.to_json()
+    result: str = markup.to_json()
+    return result
 
 
 def _serialize_format(fmt: Any | None) -> str | None:
@@ -43,12 +44,12 @@ def _serialize_format(fmt: Any | None) -> str | None:
         return fmt
     # Format object
     if hasattr(fmt, "to_json"):
-        return fmt.to_json()
+        result: str = fmt.to_json()
+        return result
     # Plain dict
     if isinstance(fmt, dict):
         return json.dumps(fmt)
     raise TypeError(f"Unsupported format_ type: {type(fmt)}")
-
 
 
 def _validate_reply_forward(

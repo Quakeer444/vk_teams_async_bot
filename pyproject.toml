@@ -68,6 +68,8 @@ exclude = ["**/node_modules",
     "**/__pycache__",
     "tests"
 ]
+# Pydantic discriminated unions narrow `type` via Literal -- this is idiomatic
+reportIncompatibleVariableOverride = false
 
 [build-system]
 requires = ["poetry-core"]

@@ -247,9 +247,7 @@ class Dispatcher:
     ) -> None:
         """Find the first matching handler and execute it."""
         if not isinstance(event, BaseEvent):
-            logger.debug(
-                "Skipping non-BaseEvent in dispatch: %s", type(event).__name__
-            )
+            logger.debug("Skipping non-BaseEvent in dispatch: %s", type(event).__name__)
             return
         bot = data["bot"]
 
