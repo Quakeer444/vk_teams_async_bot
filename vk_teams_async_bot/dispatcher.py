@@ -21,10 +21,7 @@ from .handlers.message import MessageHandler
 from .handlers.pinned_message import PinnedMessageHandler, UnpinnedMessageHandler
 from .middleware.base import BaseMiddleware
 from .middleware.manager import MiddlewareManager
-from .types.event import (
-    BaseEvent,
-    RawUnknownEvent,
-)
+from .types.event import BaseEvent, RawUnknownEvent
 from .utils import extract_chat_user
 
 if TYPE_CHECKING:
@@ -232,9 +229,7 @@ class Dispatcher:
         if self._storage is not None:
             user_key = extract_chat_user(event)
             if user_key is not None:
-                data["fsm_context"] = FSMContext(
-                    storage=self._storage, key=user_key
-                )
+                data["fsm_context"] = FSMContext(storage=self._storage, key=user_key)
 
         # Build the handler chain wrapped by middlewares
         wrapped = self.middleware.wrap(self._dispatch_to_handler)

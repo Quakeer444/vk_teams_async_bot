@@ -1,10 +1,5 @@
 from .base import VKTeamsFlexModel, VKTeamsModel, VKTeamsResponseModel
-from .chat import (
-    ChatInfoChannel,
-    ChatInfoGroup,
-    ChatInfoPrivate,
-    ChatInfoResponse,
-)
+from .chat import ChatInfoChannel, ChatInfoGroup, ChatInfoPrivate, ChatInfoResponse
 from .enums import (
     ChatAction,
     ChatType,
@@ -13,24 +8,6 @@ from .enums import (
     Parts,
     StyleKeyboard,
     StyleType,
-)
-from .event_chat import EventChatRef
-from .file import FileInfo
-from .format_ import Format, Style
-from .keyboard import InlineKeyboardMarkup, KeyboardButton
-from .response import (
-    AdminsResponse,
-    ChatCreateResponse,
-    ErrorResponse,
-    FileUploadResponse,
-    MemberFailure,
-    MembersResponse,
-    MessageResponse,
-    OkResponse,
-    OkWithDescriptionResponse,
-    PartialSuccessResponse,
-    UserIdItem,
-    UsersResponse,
 )
 from .event import (
     BaseEvent,
@@ -46,6 +23,10 @@ from .event import (
     UnpinnedMessageEvent,
     parse_event,
 )
+from .event_chat import EventChatRef
+from .file import FileInfo
+from .format_ import Format, Style
+from .keyboard import InlineKeyboardMarkup, KeyboardButton
 from .message import (
     FilePart,
     FilePartPayload,
@@ -60,6 +41,20 @@ from .message import (
     StickerPartPayload,
     VoicePart,
     parse_parts,
+)
+from .response import (
+    AdminsResponse,
+    ChatCreateResponse,
+    ErrorResponse,
+    FileUploadResponse,
+    MemberFailure,
+    MembersResponse,
+    MessageResponse,
+    OkResponse,
+    OkWithDescriptionResponse,
+    PartialSuccessResponse,
+    UserIdItem,
+    UsersResponse,
 )
 from .user import BotInfo, PhotoUrl, User, UserAdmin
 

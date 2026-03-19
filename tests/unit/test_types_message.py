@@ -17,8 +17,8 @@ from vk_teams_async_bot.types.message import (
     parse_parts,
 )
 
-
 # -- Fixtures: reusable raw dicts --
+
 
 def _user_raw(user_id: str = "user1") -> dict:
     return {"userId": user_id, "firstName": "Alice", "lastName": "Smith"}
@@ -35,6 +35,7 @@ def _nested_message_raw(**overrides) -> dict:
 
 
 # -- NestedMessage --
+
 
 class TestNestedMessage:
     def test_all_fields(self) -> None:
@@ -56,6 +57,7 @@ class TestNestedMessage:
 
 
 # -- Individual part types --
+
 
 class TestFilePart:
     def test_basic(self) -> None:
@@ -129,6 +131,7 @@ class TestReplyPart:
 
 # -- Discriminated union --
 
+
 class TestMessagePartUnion:
     def test_discriminator_resolves_all_types(self) -> None:
         adapter = TypeAdapter(MessagePart)
@@ -148,10 +151,13 @@ class TestMessagePartUnion:
         ]
         for raw, expected_type in cases:
             parsed = adapter.validate_python(raw)
-            assert isinstance(parsed, expected_type), f"Expected {expected_type}, got {type(parsed)}"
+            assert isinstance(
+                parsed, expected_type
+            ), f"Expected {expected_type}, got {type(parsed)}"
 
 
 # -- parse_parts --
+
 
 class TestParseParts:
     def test_all_valid(self) -> None:

@@ -67,9 +67,7 @@ class MessageTextPartFromNickFilter(FilterBase):
             return all(
                 p.payload.message.from_.nick == self.nick for p in relevant_parts
             )
-        return any(
-            p.payload.message.from_.nick == self.nick for p in relevant_parts
-        )
+        return any(p.payload.message.from_.nick == self.nick for p in relevant_parts)
 
     def __repr__(self) -> str:
         return (

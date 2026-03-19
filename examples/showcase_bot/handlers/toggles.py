@@ -13,7 +13,9 @@ from ..states import ToggleStates
 
 def register_toggle_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:tgl"))
-    async def show_toggles(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def show_toggles(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(ToggleStates.settings)
         data = await fsm_context.get_data()
         settings = data.get("settings", dict(DEFAULT_SETTINGS))
@@ -34,10 +36,14 @@ def register_toggle_handlers(dp: Dispatcher) -> None:
             )
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^tgl:"))
-    async def toggle_setting(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def toggle_setting(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         setting_key = event.callback_data.split(":", 1)[1]
         if setting_key not in SETTING_LABELS:
-            await bot.answer_callback_query(query_id=event.query_id, text="Неизвестная настройка")
+            await bot.answer_callback_query(
+                query_id=event.query_id, text="Неизвестная настройка"
+            )
             return
         data = await fsm_context.get_data()
         settings = data.get("settings", dict(DEFAULT_SETTINGS))

@@ -21,11 +21,14 @@ PHONE_RE = re.compile(r"^\d{10,15}$")
 
 def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     @dp.callback_query(CallbackDataFilter("menu:wzt"))
-    async def start_wizard(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_wizard(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardTextStates.entering_name)
         await fsm_context.set_data({})
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя (имя и фамилия):",
             wzt_back_cancel_kb(),
         )
@@ -111,30 +114,39 @@ def register_wizard_text_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         await safe_edit(event, bot, "Регистрация отменена.", main_menu_kb())
 
     @dp.callback_query(CallbackDataFilter("wzt:back:name"))
-    async def back_to_name(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_name(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardTextStates.entering_name)
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Регистрация {progress_bar(1, 3)}\n\nВведите ваше полное имя:",
             wzt_back_cancel_kb(),
         )
 
     @dp.callback_query(CallbackDataFilter("wzt:back:email"))
-    async def back_to_email(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_email(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardTextStates.entering_email)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"Регистрация {progress_bar(2, 3)}\n\nИмя: {data.get('name', '?')}\nВведите email:",
             wzt_back_cancel_kb(back_step="name"),
         )
 
     @dp.callback_query(CallbackDataFilter("wzt:back:phone"))
-    async def back_to_phone(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_phone(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardTextStates.entering_phone)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"Регистрация {progress_bar(3, 3)}\n\nИмя: {data.get('name', '?')}\nEmail: {data.get('email', '?')}\nВведите телефон:",
             wzt_back_cancel_kb(back_step="email"),
         )

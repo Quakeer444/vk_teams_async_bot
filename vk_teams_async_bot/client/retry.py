@@ -31,7 +31,7 @@ async def exponential_backoff_with_jitter(
     Returns:
         The actual delay (in seconds) that was applied.
     """
-    delay = min(policy.base_delay * (2 ** attempt), policy.max_delay)
+    delay = min(policy.base_delay * (2**attempt), policy.max_delay)
 
     if policy.jitter:
         delay = random.uniform(0, delay)  # noqa: S311

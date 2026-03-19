@@ -7,7 +7,7 @@ from vk_teams_async_bot import (
     FSMContext,
 )
 
-from ..keyboards import main_menu_kb, multiselect_kb, multiselect_confirm_kb
+from ..keyboards import main_menu_kb, multiselect_confirm_kb, multiselect_kb
 from ..states import MultiSelectStates
 
 
@@ -23,7 +23,9 @@ def _build_select_text(selected: set[str]) -> str:
 
 def register_multiselect_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:msel"))
-    async def show_multiselect(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def show_multiselect(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(MultiSelectStates.selecting)
         await fsm_context.update_data(selected=[], page=0)
         await bot.answer_callback_query(query_id=event.query_id)
@@ -83,7 +85,9 @@ def register_multiselect_handlers(dp: Dispatcher) -> None:
             )
 
     @dp.callback_query(CallbackDataFilter("msel:clear"))
-    async def clear_selection(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def clear_selection(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         page = data.get("page", 0)
         await fsm_context.update_data(selected=[])
@@ -118,7 +122,9 @@ def register_multiselect_handlers(dp: Dispatcher) -> None:
             )
 
     @dp.callback_query(CallbackDataFilter("msel:back"))
-    async def back_to_select(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_select(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         selected = set(data.get("selected", []))
         page = data.get("page", 0)
@@ -132,12 +138,16 @@ def register_multiselect_handlers(dp: Dispatcher) -> None:
             )
 
     @dp.callback_query(CallbackDataFilter("msel:confirm"))
-    async def confirm_selection(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def confirm_selection(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         selected = sorted(data.get("selected", []))
         await fsm_context.clear()
         langs = ", ".join(selected)
-        await bot.answer_callback_query(query_id=event.query_id, text="Выбор подтвержден!")
+        await bot.answer_callback_query(
+            query_id=event.query_id, text="Выбор подтвержден!"
+        )
         text = f"Выбранные языки: {langs}\n\nОтличный выбор!"
         if event.message:
             await bot.edit_text(

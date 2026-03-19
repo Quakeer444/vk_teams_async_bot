@@ -88,17 +88,13 @@ class TestMemoryStorageUpdateData:
         assert result == {"name": "Alice", "phone": "123"}
 
     @pytest.mark.asyncio
-    async def test_update_data_overwrites_key(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_update_data_overwrites_key(self, storage: MemoryStorage) -> None:
         await storage.set_data(KEY_A, {"name": "Alice"})
         result = await storage.update_data(KEY_A, data={"name": "Bob"})
         assert result == {"name": "Bob"}
 
     @pytest.mark.asyncio
-    async def test_update_data_returns_copy(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_update_data_returns_copy(self, storage: MemoryStorage) -> None:
         result = await storage.update_data(KEY_A, data={"x": 1})
         result["x"] = 999
         assert (await storage.get_data(KEY_A))["x"] == 1
@@ -106,9 +102,7 @@ class TestMemoryStorageUpdateData:
 
 class TestMemoryStorageClear:
     @pytest.mark.asyncio
-    async def test_clear_removes_state_and_data(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_clear_removes_state_and_data(self, storage: MemoryStorage) -> None:
         await storage.set_state(KEY_A, "active")
         await storage.set_data(KEY_A, {"foo": "bar"})
         await storage.clear(KEY_A)
@@ -116,9 +110,7 @@ class TestMemoryStorageClear:
         assert await storage.get_data(KEY_A) == {}
 
     @pytest.mark.asyncio
-    async def test_clear_unknown_key_is_noop(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_clear_unknown_key_is_noop(self, storage: MemoryStorage) -> None:
         # Should not raise
         await storage.clear(("nonexistent", "key"))
 
@@ -127,9 +119,7 @@ class TestMemoryStorageIsolation:
     """Same user in different chats must have independent state."""
 
     @pytest.mark.asyncio
-    async def test_same_user_different_chats(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_same_user_different_chats(self, storage: MemoryStorage) -> None:
         await storage.set_state(KEY_A, "state_in_chat_1")
         await storage.set_state(KEY_B, "state_in_chat_2")
         await storage.set_data(KEY_A, {"from": "chat_1"})
@@ -151,9 +141,7 @@ class TestMemoryStorageIsolation:
         assert await storage.get_state(KEY_B) == "active"
 
     @pytest.mark.asyncio
-    async def test_different_users_same_chat(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_different_users_same_chat(self, storage: MemoryStorage) -> None:
         await storage.set_state(KEY_A, "user1_state")
         await storage.set_state(KEY_C, "user2_state")
         assert await storage.get_state(KEY_A) == "user1_state"
@@ -185,9 +173,7 @@ class TestMemoryStorageConcurrency:
 
 class TestMemoryStorageClose:
     @pytest.mark.asyncio
-    async def test_close_clears_everything(
-        self, storage: MemoryStorage
-    ) -> None:
+    async def test_close_clears_everything(self, storage: MemoryStorage) -> None:
         await storage.set_state(KEY_A, "active")
         await storage.set_data(KEY_A, {"x": 1})
         await storage.close()

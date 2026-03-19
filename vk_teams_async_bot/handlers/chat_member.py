@@ -13,7 +13,9 @@ class NewChatMembersHandler(BaseHandler):
         return isinstance(event, NewChatMembersEvent) and super().check(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return isinstance(event, NewChatMembersEvent) and await super().check_async(event)
+        return isinstance(event, NewChatMembersEvent) and await super().check_async(
+            event
+        )
 
 
 class LeftChatMembersHandler(BaseHandler):
@@ -23,4 +25,6 @@ class LeftChatMembersHandler(BaseHandler):
         return isinstance(event, LeftChatMembersEvent) and super().check(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return isinstance(event, LeftChatMembersEvent) and await super().check_async(event)
+        return isinstance(event, LeftChatMembersEvent) and await super().check_async(
+            event
+        )

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Awaitable
+from typing import Any, Awaitable, Callable
 
 from ..types.event import BaseEvent, RawUnknownEvent
-
 
 Event = BaseEvent | RawUnknownEvent
 HandlerType = Callable[[Event, dict[str, Any]], Awaitable[Any]]

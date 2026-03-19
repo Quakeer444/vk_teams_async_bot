@@ -19,7 +19,12 @@ class TestFileInfo:
         assert f.url == "https://files.example.com/photo.jpg"
 
     def test_round_trip(self):
-        data = {"type": "audio", "size": 2048, "filename": "song.mp3", "url": "https://x.com/song.mp3"}
+        data = {
+            "type": "audio",
+            "size": 2048,
+            "filename": "song.mp3",
+            "url": "https://x.com/song.mp3",
+        }
         f = FileInfo(**data)
         assert f.model_dump() == data
 

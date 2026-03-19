@@ -48,10 +48,9 @@ class AndFilter(FilterBase):
         return self.filter_1(event) and self.filter_2(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return (
-            await self.filter_1.check_async(event)
-            and await self.filter_2.check_async(event)
-        )
+        return await self.filter_1.check_async(
+            event
+        ) and await self.filter_2.check_async(event)
 
     def iter_filters(self) -> Iterator[FilterBase]:
         yield from self.filter_1.iter_filters()
@@ -72,10 +71,9 @@ class OrFilter(FilterBase):
         return self.filter_1(event) or self.filter_2(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return (
-            await self.filter_1.check_async(event)
-            or await self.filter_2.check_async(event)
-        )
+        return await self.filter_1.check_async(
+            event
+        ) or await self.filter_2.check_async(event)
 
     def iter_filters(self) -> Iterator[FilterBase]:
         yield from self.filter_1.iter_filters()

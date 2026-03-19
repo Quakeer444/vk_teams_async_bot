@@ -18,7 +18,6 @@ from vk_teams_async_bot.types.response import (
 
 from .base import BaseMethods
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -73,9 +72,7 @@ def _validate_reply_forward(
             "replyMsgId and forwardChatId/forwardMsgId are mutually exclusive"
         )
     if has_forward_chat != has_forward_msg:
-        raise ValueError(
-            "forwardChatId and forwardMsgId must be provided together"
-        )
+        raise ValueError("forwardChatId and forwardMsgId must be provided together")
 
 
 def _validate_parse_format(
@@ -201,9 +198,7 @@ class MessageMethods(BaseMethods):
                 replyMsgId=_serialize_msg_ids(reply_msg_id),
                 forwardChatId=forward_chat_id,
                 forwardMsgId=_serialize_msg_ids(forward_msg_id),
-                inlineKeyboardMarkup=_serialize_keyboard(
-                    inline_keyboard_markup
-                ),
+                inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
                 format=_serialize_format(format_),
                 parseMode=parse_mode.value if parse_mode else None,
             )
@@ -255,9 +250,7 @@ class MessageMethods(BaseMethods):
                 replyMsgId=_serialize_msg_ids(reply_msg_id),
                 forwardChatId=forward_chat_id,
                 forwardMsgId=_serialize_msg_ids(forward_msg_id),
-                inlineKeyboardMarkup=_serialize_keyboard(
-                    inline_keyboard_markup
-                ),
+                inlineKeyboardMarkup=_serialize_keyboard(inline_keyboard_markup),
             )
             return FileUploadResponse.model_validate(raw)
 
@@ -332,9 +325,9 @@ class MessageMethods(BaseMethods):
             "/messages/answerCallbackQuery",
             queryId=query_id,
             text=text,
-            showAlert="true" if show_alert else (
-                "false" if show_alert is not None else None
-            ),
+            showAlert="true"
+            if show_alert
+            else ("false" if show_alert is not None else None),
             url=url,
         )
         return OkResponse.model_validate(raw)

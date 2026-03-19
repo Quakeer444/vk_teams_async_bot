@@ -13,7 +13,6 @@ from vk_teams_async_bot import (
     NewMessageEvent,
     StateFilter,
 )
-
 from vk_teams_async_bot.fsm.storage.base import BaseStorage
 
 from ..keyboards import back_to_main_kb, files_menu_kb
@@ -35,7 +34,12 @@ def _make_tiny_png() -> io.BytesIO:
     ihdr_data = struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0)
     raw_row = b"\x00\xff\x00\x00"  # filter=none, R=255, G=0, B=0
     compressed = zlib.compress(raw_row)
-    png = signature + _chunk(b"IHDR", ihdr_data) + _chunk(b"IDAT", compressed) + _chunk(b"IEND", b"")
+    png = (
+        signature
+        + _chunk(b"IHDR", ihdr_data)
+        + _chunk(b"IDAT", compressed)
+        + _chunk(b"IEND", b"")
+    )
     buf = io.BytesIO(png)
     buf.name = "test.png"
     return buf
@@ -59,14 +63,17 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     @dp.callback_query(CallbackDataFilter("menu:file"))
     async def show_files(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Отправка и получение файлов\n\nВыберите, что хотите проверить:",
             files_menu_kb(),
         )
 
     @dp.callback_query(CallbackDataFilter("file:send:img"))
     async def send_image(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id, text="Отправка изображения...")
+        await bot.answer_callback_query(
+            query_id=event.query_id, text="Отправка изображения..."
+        )
         chat_id = event.chat.chat_id
         await bot.send_chat_actions(chat_id, actions=[ChatAction.TYPING])
         png_buf = _make_tiny_png()
@@ -78,7 +85,9 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
 
     @dp.callback_query(CallbackDataFilter("file:send:voice"))
     async def send_voice(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id, text="Отправка голосового...")
+        await bot.answer_callback_query(
+            query_id=event.query_id, text="Отправка голосового..."
+        )
         chat_id = event.chat.chat_id
         await bot.send_chat_actions(chat_id, actions=[ChatAction.TYPING])
         wav_buf = _make_tiny_wav()
@@ -88,10 +97,13 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("file:receive"))
-    async def start_receive(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_receive(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(FileReceiveStates.waiting_for_file)
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Отправьте мне любой файл и я:\n1. Получу информацию о файле\n2. Скачаю его\n3. Отправлю обратно по file_id",
             back_to_main_kb(),
         )
@@ -102,7 +114,11 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         chat_id = event.chat.chat_id
 
         if not event.parts:
-            await bot.send_text(chat_id, "Части файла не найдены.", inline_keyboard_markup=files_menu_kb())
+            await bot.send_text(
+                chat_id,
+                "Части файла не найдены.",
+                inline_keyboard_markup=files_menu_kb(),
+            )
             return
 
         file_part = event.parts[0]
@@ -133,4 +149,6 @@ def register_files_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
 
     @dp.message(StateFilter(FileReceiveStates.waiting_for_file, storage))
     async def fallback_file_receive(event: NewMessageEvent, bot: Bot):
-        await bot.send_text(event.chat.chat_id, "Ожидается файл. Отправьте файл или /cancel.")
+        await bot.send_text(
+            event.chat.chat_id, "Ожидается файл. Отправьте файл или /cancel."
+        )

@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import signal
-from typing import Any, Callable, Awaitable, Sequence
+from typing import Any, Awaitable, Callable, Sequence
 
 from .client.retry import RetryPolicy
 from .client.session import VKTeamsSession
@@ -103,14 +103,10 @@ class Bot(
         """Await background tasks with timeout, cancel stragglers."""
         if not self._background_tasks:
             return
-        logger.debug(
-            "Awaiting %d background tasks...", len(self._background_tasks)
-        )
+        logger.debug("Awaiting %d background tasks...", len(self._background_tasks))
         try:
             await asyncio.wait_for(
-                asyncio.gather(
-                    *self._background_tasks, return_exceptions=True
-                ),
+                asyncio.gather(*self._background_tasks, return_exceptions=True),
                 timeout=self._shutdown_timeout,
             )
         except asyncio.TimeoutError:
@@ -121,9 +117,7 @@ class Bot(
             )
             for task in self._background_tasks:
                 task.cancel()
-            await asyncio.gather(
-                *self._background_tasks, return_exceptions=True
-            )
+            await asyncio.gather(*self._background_tasks, return_exceptions=True)
         self._background_tasks.clear()
 
     # -- Lifecycle hooks -------------------------------------------------------
@@ -168,8 +162,7 @@ class Bot(
                 loop.add_signal_handler(sig, self._handle_signal)
         except NotImplementedError:
             logger.warning(
-                "Signal handlers not supported on this platform; "
-                "use Ctrl+C to stop"
+                "Signal handlers not supported on this platform; " "use Ctrl+C to stop"
             )
 
         # Run startup hooks
@@ -216,9 +209,7 @@ class Bot(
 
                 for event in events:
                     self._update_last_event_id(event)
-                    task = asyncio.create_task(
-                        self._safe_dispatch(dispatcher, event)
-                    )
+                    task = asyncio.create_task(self._safe_dispatch(dispatcher, event))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._task_done)
 
@@ -234,9 +225,7 @@ class Bot(
                 )
                 await asyncio.sleep(backoff)
 
-    def _update_last_event_id(
-        self, event: BaseEvent | RawUnknownEvent
-    ) -> None:
+    def _update_last_event_id(self, event: BaseEvent | RawUnknownEvent) -> None:
         """Track the last event ID for long-polling offset."""
         if event.event_id > self.last_event_id:
             self.last_event_id = event.event_id

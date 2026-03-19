@@ -291,9 +291,7 @@ class ChatMethods(BaseMethods):
         has_user = user_id is not None
         has_everyone = everyone is not None
         if has_user == has_everyone:
-            raise ValueError(
-                "Exactly one of user_id or everyone must be provided"
-            )
+            raise ValueError("Exactly one of user_id or everyone must be provided")
 
         raw = await self._session.get(
             "/chats/resolvePending",

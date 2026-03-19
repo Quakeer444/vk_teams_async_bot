@@ -35,6 +35,7 @@ class TestErrorHierarchy:
 
     def test_timeout_error_is_builtin_timeout(self):
         import builtins
+
         assert isinstance(TimeoutError(), builtins.TimeoutError)
 
     def test_session_error_is_vk_teams_error(self):
@@ -66,5 +67,3 @@ class TestEventParsingError:
     def test_without_raw_data(self):
         err = EventParsingError("No data")
         assert err.raw_data is None
-
-

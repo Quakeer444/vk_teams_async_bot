@@ -135,14 +135,7 @@ from .filters import (
     TextFilter,
     VoiceFilter,
 )
-from .fsm import (
-    BaseStorage,
-    FSMContext,
-    MemoryStorage,
-    State,
-    StatesGroup,
-    StorageKey,
-)
+from .fsm import BaseStorage, FSMContext, MemoryStorage, State, StatesGroup, StorageKey
 from .handlers import (
     BaseHandler,
     CallbackQueryHandler,
@@ -155,11 +148,7 @@ from .handlers import (
     PinnedMessageHandler,
     UnpinnedMessageHandler,
 )
-from .middleware import (
-    BaseMiddleware,
-    MiddlewareManager,
-    SessionTimeoutMiddleware,
-)
+from .middleware import BaseMiddleware, MiddlewareManager, SessionTimeoutMiddleware
 from .types import (
     BaseEvent,
     BotInfo,

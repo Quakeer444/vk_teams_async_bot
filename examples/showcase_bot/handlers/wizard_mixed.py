@@ -24,28 +24,36 @@ from .utils import progress_bar, safe_edit
 
 def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     @dp.callback_query(CallbackDataFilter("menu:wzm"))
-    async def start_wizard(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_wizard(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardMixedStates.choosing_event)
         await fsm_context.set_data({})
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Регистрация на событие {progress_bar(1, 5)}\n\nВыберите тип события:",
             wzm_event_kb(),
         )
 
     @dp.callback_query(CallbackDataRegexpFilter(r"^wzm:event:"))
-    async def choose_event(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def choose_event(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         event_type = event.callback_data.split(":")[2]
         await fsm_context.update_data(event_type=event_type)
         await fsm_context.set_state(WizardMixedStates.entering_attendees)
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"Регистрация на событие {progress_bar(2, 5)}\n\nСобытие: {event_type}\nВведите количество участников:",
             wzm_attendees_kb(),
         )
 
     @dp.message(StateFilter(WizardMixedStates.entering_attendees, storage))
-    async def enter_attendees(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
+    async def enter_attendees(
+        event: NewMessageEvent, bot: Bot, fsm_context: FSMContext
+    ):
         text = (event.text or "").strip()
         try:
             count = int(text)
@@ -79,7 +87,8 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await fsm_context.set_state(WizardMixedStates.entering_notes)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             (
                 f"Регистрация на событие {progress_bar(4, 5)}\n\n"
                 f"Событие: {data['event_type']}\n"
@@ -144,30 +153,39 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         await safe_edit(event, bot, "Регистрация отменена.", main_menu_kb())
 
     @dp.callback_query(CallbackDataFilter("wzm:back:event"))
-    async def back_to_event(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_event(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardMixedStates.choosing_event)
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Регистрация на событие {progress_bar(1, 5)}\n\nВыберите тип события:",
             wzm_event_kb(),
         )
 
     @dp.callback_query(CallbackDataFilter("wzm:back:attendees"))
-    async def back_to_attendees(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_attendees(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardMixedStates.entering_attendees)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"Регистрация на событие {progress_bar(2, 5)}\n\nСобытие: {data.get('event_type', '?')}\nВведите количество участников:",
             wzm_attendees_kb(),
         )
 
     @dp.callback_query(CallbackDataFilter("wzm:back:meal"))
-    async def back_to_meal(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_meal(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardMixedStates.choosing_meal)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             (
                 f"Регистрация на событие {progress_bar(3, 5)}\n\n"
                 f"Событие: {data.get('event_type', '?')}\n"
@@ -178,11 +196,14 @@ def register_wizard_mixed_handlers(dp: Dispatcher, storage: BaseStorage) -> None
         )
 
     @dp.callback_query(CallbackDataFilter("wzm:back:notes"))
-    async def back_to_notes(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def back_to_notes(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         await fsm_context.set_state(WizardMixedStates.entering_notes)
         data = await fsm_context.get_data()
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             (
                 f"Регистрация на событие {progress_bar(4, 5)}\n\n"
                 f"Событие: {data.get('event_type', '?')}\n"

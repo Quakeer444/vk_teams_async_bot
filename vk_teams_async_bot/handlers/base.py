@@ -60,10 +60,7 @@ class BaseHandler:
         if not self.filters:
             return False
         if isinstance(self.filters, FilterBase):
-            return any(
-                isinstance(f, StateFilter)
-                for f in self.filters.iter_filters()
-            )
+            return any(isinstance(f, StateFilter) for f in self.filters.iter_filters())
         return any(
             isinstance(leaf, StateFilter)
             for f in self.filters

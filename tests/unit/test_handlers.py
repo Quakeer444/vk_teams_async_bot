@@ -12,7 +12,11 @@ import pytest
 
 from vk_teams_async_bot.filters.base import FilterBase
 from vk_teams_async_bot.filters.callback import CallbackDataFilter
-from vk_teams_async_bot.filters.message import CommandFilter, MessageFilter, RegexpFilter
+from vk_teams_async_bot.filters.message import (
+    CommandFilter,
+    MessageFilter,
+    RegexpFilter,
+)
 from vk_teams_async_bot.filters.state import StateFilter
 from vk_teams_async_bot.fsm.state import State, StatesGroup
 from vk_teams_async_bot.fsm.storage.memory import MemoryStorage
@@ -43,7 +47,6 @@ from vk_teams_async_bot.types.event import (
 )
 from vk_teams_async_bot.types.event_chat import EventChatRef
 from vk_teams_async_bot.types.user import User
-
 
 # -- Helpers --
 
@@ -417,6 +420,7 @@ class TestHandlerDI:
     @pytest.mark.asyncio
     async def test_callback_with_annotated_dependency(self):
         """Verify Annotated[Type, provider] DI pattern works."""
+
         async def get_session() -> aiohttp.ClientSession:
             return aiohttp.ClientSession()
 

@@ -9,11 +9,11 @@ from vk_teams_async_bot.filters.callback import (
     CallbackDataFilter,
     CallbackDataRegexpFilter,
 )
+from vk_teams_async_bot.filters.chat import ChatIdFilter, ChatTypeFilter
 from vk_teams_async_bot.filters.composite import (
     MessageTextPartFromNickFilter,
     RegexpTextPartsFilter,
 )
-from vk_teams_async_bot.filters.chat import ChatIdFilter, ChatTypeFilter
 from vk_teams_async_bot.filters.message import (
     CommandFilter,
     MessageFilter,
@@ -31,8 +31,8 @@ from vk_teams_async_bot.filters.parts import (
     StickerFilter,
     VoiceFilter,
 )
-from vk_teams_async_bot.filters.user import FromUserFilter
 from vk_teams_async_bot.filters.state import StateFilter
+from vk_teams_async_bot.filters.user import FromUserFilter
 from vk_teams_async_bot.fsm.state import State, StatesGroup
 from vk_teams_async_bot.fsm.storage.memory import MemoryStorage
 from vk_teams_async_bot.types.enums import ChatType, EventType, Parts
@@ -62,11 +62,12 @@ from vk_teams_async_bot.types.message import (
 )
 from vk_teams_async_bot.types.user import User
 
-
 # -- Helpers --
 
 
-def _chat(chat_id: str = "chat1", chat_type: ChatType = ChatType.PRIVATE) -> EventChatRef:
+def _chat(
+    chat_id: str = "chat1", chat_type: ChatType = ChatType.PRIVATE
+) -> EventChatRef:
     return EventChatRef(chatId=chat_id, type=chat_type)
 
 
@@ -698,7 +699,9 @@ class TestFileTypeFilter:
 
     def test_multiple_file_parts_one_matches(self):
         f = FileTypeFilter("image")
-        event = _new_message(parts=[_file_part_typed("audio"), _file_part_typed("image")])
+        event = _new_message(
+            parts=[_file_part_typed("audio"), _file_part_typed("image")]
+        )
         assert f(event) is True
 
     def test_wrong_event_type(self):
@@ -732,7 +735,9 @@ class TestMentionUserFilter:
 
     def test_multiple_mentions_one_matches(self):
         f = MentionUserFilter("user2")
-        event = _new_message(parts=[_mention_part_user("user1"), _mention_part_user("user2")])
+        event = _new_message(
+            parts=[_mention_part_user("user1"), _mention_part_user("user2")]
+        )
         assert f(event) is True
 
     def test_no_mention_parts(self):
@@ -792,10 +797,12 @@ class TestRegexpTextPartsFilter:
 class TestMessageTextPartFromNickFilter:
     def test_any_mode_matching(self):
         f = MessageTextPartFromNickFilter("bot_nick")
-        event = _new_message(parts=[
-            _forward_part("text1", nick="bot_nick"),
-            _forward_part("text2", nick="other"),
-        ])
+        event = _new_message(
+            parts=[
+                _forward_part("text1", nick="bot_nick"),
+                _forward_part("text2", nick="other"),
+            ]
+        )
         assert f(event) is True
 
     def test_any_mode_no_match(self):
@@ -805,18 +812,22 @@ class TestMessageTextPartFromNickFilter:
 
     def test_all_mode_all_match(self):
         f = MessageTextPartFromNickFilter("bot_nick", all_text_parts_from_nick=True)
-        event = _new_message(parts=[
-            _forward_part("text1", nick="bot_nick"),
-            _reply_part("text2", nick="bot_nick"),
-        ])
+        event = _new_message(
+            parts=[
+                _forward_part("text1", nick="bot_nick"),
+                _reply_part("text2", nick="bot_nick"),
+            ]
+        )
         assert f(event) is True
 
     def test_all_mode_partial_match(self):
         f = MessageTextPartFromNickFilter("bot_nick", all_text_parts_from_nick=True)
-        event = _new_message(parts=[
-            _forward_part("text1", nick="bot_nick"),
-            _forward_part("text2", nick="other"),
-        ])
+        event = _new_message(
+            parts=[
+                _forward_part("text1", nick="bot_nick"),
+                _forward_part("text2", nick="other"),
+            ]
+        )
         assert f(event) is False
 
     def test_no_parts(self):

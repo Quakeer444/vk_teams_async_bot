@@ -19,7 +19,9 @@ class TestRetryPolicyDefaults:
         assert policy.jitter is True
 
     def test_custom_values(self) -> None:
-        policy = RetryPolicy(max_retries=5, base_delay=0.5, max_delay=60.0, jitter=False)
+        policy = RetryPolicy(
+            max_retries=5, base_delay=0.5, max_delay=60.0, jitter=False
+        )
         assert policy.max_retries == 5
         assert policy.base_delay == 0.5
         assert policy.max_delay == 60.0

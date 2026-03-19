@@ -20,7 +20,8 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:chat"))
     async def show_chat_ops(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Действия в чате\n\nВыберите, что хотите проверить:",
             chat_ops_menu_kb(),
         )
@@ -33,29 +34,35 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
 
         lines = ["Информация о чате", ""]
         if isinstance(info, ChatInfoPrivate):
-            lines.extend([
-                f"Тип: личный",
-                f"Имя: {info.first_name or ''} {info.last_name or ''}".strip(),
-                f"Ник: {info.nick or '(нет)'}",
-                f"О себе: {info.about or '(нет)'}",
-                f"Бот: {info.is_bot}",
-            ])
+            lines.extend(
+                [
+                    f"Тип: личный",
+                    f"Имя: {info.first_name or ''} {info.last_name or ''}".strip(),
+                    f"Ник: {info.nick or '(нет)'}",
+                    f"О себе: {info.about or '(нет)'}",
+                    f"Бот: {info.is_bot}",
+                ]
+            )
         elif isinstance(info, ChatInfoGroup):
-            lines.extend([
-                f"Тип: группа",
-                f"Название: {info.title or '(нет)'}",
-                f"Описание: {info.about or '(нет)'}",
-                f"Правила: {info.rules or '(нет)'}",
-                f"Публичный: {info.public}",
-            ])
+            lines.extend(
+                [
+                    f"Тип: группа",
+                    f"Название: {info.title or '(нет)'}",
+                    f"Описание: {info.about or '(нет)'}",
+                    f"Правила: {info.rules or '(нет)'}",
+                    f"Публичный: {info.public}",
+                ]
+            )
         elif isinstance(info, ChatInfoChannel):
-            lines.extend([
-                f"Тип: канал",
-                f"Название: {info.title or '(нет)'}",
-                f"Описание: {info.about or '(нет)'}",
-                f"Правила: {info.rules or '(нет)'}",
-                f"Публичный: {info.public}",
-            ])
+            lines.extend(
+                [
+                    f"Тип: канал",
+                    f"Название: {info.title or '(нет)'}",
+                    f"Описание: {info.about or '(нет)'}",
+                    f"Правила: {info.rules or '(нет)'}",
+                    f"Публичный: {info.public}",
+                ]
+            )
 
         await bot.send_text(
             chat_id=chat_id,
@@ -65,7 +72,9 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
 
     @dp.callback_query(CallbackDataFilter("chat:typing"))
     async def show_typing(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id, text="Показываю печатание...")
+        await bot.answer_callback_query(
+            query_id=event.query_id, text="Показываю печатание..."
+        )
         chat_id = event.chat.chat_id
         await bot.send_chat_actions(chat_id, actions=[ChatAction.TYPING])
         await bot.send_text(
@@ -76,7 +85,9 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
 
     @dp.callback_query(CallbackDataFilter("chat:looking"))
     async def show_looking(event: CallbackQueryEvent, bot: Bot):
-        await bot.answer_callback_query(query_id=event.query_id, text="Показываю просмотр...")
+        await bot.answer_callback_query(
+            query_id=event.query_id, text="Показываю просмотр..."
+        )
         chat_id = event.chat.chat_id
         await bot.send_chat_actions(chat_id, actions=[ChatAction.LOOKING])
         await bot.send_text(
@@ -93,8 +104,12 @@ def register_chat_ops_handlers(dp: Dispatcher) -> None:
         await bot.pin_message(chat_id, msg.msg_id)
 
         unpin_kb = InlineKeyboardMarkup(buttons_in_row=1)
-        unpin_kb.add(KeyboardButton(text="Открепить", callback_data=f"chat:unpin:{msg.msg_id}"))
-        unpin_kb.add(KeyboardButton(text="<< В главное меню", callback_data="menu:main"))
+        unpin_kb.add(
+            KeyboardButton(text="Открепить", callback_data=f"chat:unpin:{msg.msg_id}")
+        )
+        unpin_kb.add(
+            KeyboardButton(text="<< В главное меню", callback_data="menu:main")
+        )
         await bot.send_text(
             chat_id=chat_id,
             text="Сообщение закреплено! Нажмите, чтобы открепить.",

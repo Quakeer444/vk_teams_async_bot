@@ -27,7 +27,8 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
     async def nav_l1(event: CallbackQueryEvent, bot: Bot):
         section = event.callback_data.split(":", 2)[2]
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"{section}\n\nВыберите тему:",
             nav_level2_kb(section),
         )
@@ -37,7 +38,8 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
         parts = event.callback_data.split(":")
         section, item = parts[2], parts[3]
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"{section} > {item}\n\nВыберите пункт:",
             nav_level3_kb(section, item),
         )
@@ -48,7 +50,8 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
         section, item, detail = parts[2], parts[3], parts[4]
         leaf = NAV_TREE[section][item][detail]
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"{section} > {item} > {detail}\n\n{leaf}",
             nav_level4_kb(section, item),
         )
@@ -61,7 +64,8 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
     async def nav_back_l2(event: CallbackQueryEvent, bot: Bot):
         section = event.callback_data.split(":")[3]
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"{section}\n\nВыберите тему:",
             nav_level2_kb(section),
         )
@@ -71,7 +75,8 @@ def register_navigation_handlers(dp: Dispatcher) -> None:
         parts = event.callback_data.split(":")
         section, item = parts[3], parts[4]
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             f"{section} > {item}\n\nВыберите пункт:",
             nav_level3_kb(section, item),
         )

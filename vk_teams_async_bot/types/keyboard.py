@@ -22,9 +22,7 @@ class KeyboardButton(VKTeamsModel):
                 "KeyboardButton: url and callbackData are mutually exclusive"
             )
         if not self.url and not self.callback_data:
-            raise ValueError(
-                "KeyboardButton: one of url or callbackData is required"
-            )
+            raise ValueError("KeyboardButton: one of url or callbackData is required")
         return self
 
     def to_dict(self) -> dict[str, str]:
@@ -58,14 +56,14 @@ class InlineKeyboardMarkup:
         self.keyboard.append(list(buttons))
 
     def to_json(self) -> str:
-        return json.dumps(
-            [[btn.to_dict() for btn in row] for row in self.keyboard]
-        )
+        return json.dumps([[btn.to_dict() for btn in row] for row in self.keyboard])
 
     def __str__(self) -> str:
         return self.to_json()
 
-    def __add__(self, other: InlineKeyboardMarkup | KeyboardButton) -> InlineKeyboardMarkup:
+    def __add__(
+        self, other: InlineKeyboardMarkup | KeyboardButton
+    ) -> InlineKeyboardMarkup:
         new_markup = InlineKeyboardMarkup(buttons_in_row=self.buttons_in_row)
         new_markup.keyboard = [row[:] for row in self.keyboard]
         if isinstance(other, InlineKeyboardMarkup):

@@ -35,7 +35,8 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
     @dp.callback_query(CallbackDataFilter("menu:adm"))
     async def show_admin_menu(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Администрирование чата\n\n"
             "Чтение информации о чате работает в группах.\n"
             "Запись (название, описание, правила) требует "
@@ -74,13 +75,20 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text = "\n".join(lines)
             kb = chat_admin_menu_kb()
             if result.cursor:
-                from vk_teams_async_bot import InlineKeyboardMarkup, KeyboardButton, StyleKeyboard
+                from vk_teams_async_bot import (
+                    InlineKeyboardMarkup,
+                    KeyboardButton,
+                    StyleKeyboard,
+                )
+
                 kb = InlineKeyboardMarkup(buttons_in_row=1)
-                kb.add(KeyboardButton(
-                    text="Далее >>",
-                    callback_data=f"adm:members:{result.cursor}",
-                    style=StyleKeyboard.PRIMARY,
-                ))
+                kb.add(
+                    KeyboardButton(
+                        text="Далее >>",
+                        callback_data=f"adm:members:{result.cursor}",
+                        style=StyleKeyboard.PRIMARY,
+                    )
+                )
                 kb.row(KeyboardButton(text="<< Назад", callback_data="menu:adm"))
         except APIError as e:
             text = f"Ошибка: {e.description}\n\n(Работает только в групповых чатах)"
@@ -103,13 +111,20 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             text = "\n".join(lines)
             kb = chat_admin_menu_kb()
             if result.cursor:
-                from vk_teams_async_bot import InlineKeyboardMarkup, KeyboardButton, StyleKeyboard
+                from vk_teams_async_bot import (
+                    InlineKeyboardMarkup,
+                    KeyboardButton,
+                    StyleKeyboard,
+                )
+
                 kb = InlineKeyboardMarkup(buttons_in_row=1)
-                kb.add(KeyboardButton(
-                    text="Далее >>",
-                    callback_data=f"adm:members:{result.cursor}",
-                    style=StyleKeyboard.PRIMARY,
-                ))
+                kb.add(
+                    KeyboardButton(
+                        text="Далее >>",
+                        callback_data=f"adm:members:{result.cursor}",
+                        style=StyleKeyboard.PRIMARY,
+                    )
+                )
                 kb.row(KeyboardButton(text="<< Назад", callback_data="menu:adm"))
         except APIError as e:
             text = f"Ошибка: {e.description}"
@@ -164,10 +179,13 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
 
     # -- Write: set_chat_title (gated, with preview-confirm) --
     @dp.callback_query(CallbackDataFilter("adm:title"))
-    async def start_set_title(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_set_title(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         if not _admin_mode_enabled():
             await safe_edit(
-                event, bot,
+                event,
+                bot,
                 "Изменение названия чата\n\n"
                 "Для активации установите переменную окружения:\n"
                 "SHOWCASE_ADMIN_MODE=1",
@@ -176,7 +194,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             return
         user_id = event.from_.user_id if event.from_ else ""
         if not await _check_admin(bot, event.chat.chat_id, user_id):
-            await safe_edit(event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb())
+            await safe_edit(
+                event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb()
+            )
             return
         await fsm_context.set_state(ChatAdminStates.entering_title)
         await safe_edit(event, bot, "Введите новое название чата:", back_to_main_kb())
@@ -193,7 +213,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("adm:confirm:title"))
-    async def confirm_title(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def confirm_title(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         value = data.get("pending_value", "")
         await fsm_context.clear()
@@ -206,10 +228,13 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
 
     # -- Write: set_chat_about (gated, with preview-confirm) --
     @dp.callback_query(CallbackDataFilter("adm:about"))
-    async def start_set_about(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_set_about(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         if not _admin_mode_enabled():
             await safe_edit(
-                event, bot,
+                event,
+                bot,
                 "Изменение описания чата\n\n"
                 "Для активации установите переменную окружения:\n"
                 "SHOWCASE_ADMIN_MODE=1",
@@ -218,7 +243,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             return
         user_id = event.from_.user_id if event.from_ else ""
         if not await _check_admin(bot, event.chat.chat_id, user_id):
-            await safe_edit(event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb())
+            await safe_edit(
+                event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb()
+            )
             return
         await fsm_context.set_state(ChatAdminStates.entering_about)
         await safe_edit(event, bot, "Введите новое описание чата:", back_to_main_kb())
@@ -235,7 +262,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("adm:confirm:about"))
-    async def confirm_about(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def confirm_about(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         value = data.get("pending_value", "")
         await fsm_context.clear()
@@ -248,10 +277,13 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
 
     # -- Write: set_chat_rules (gated, with preview-confirm) --
     @dp.callback_query(CallbackDataFilter("adm:rules"))
-    async def start_set_rules(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def start_set_rules(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         if not _admin_mode_enabled():
             await safe_edit(
-                event, bot,
+                event,
+                bot,
                 "Изменение правил чата\n\n"
                 "Для активации установите переменную окружения:\n"
                 "SHOWCASE_ADMIN_MODE=1",
@@ -260,7 +292,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
             return
         user_id = event.from_.user_id if event.from_ else ""
         if not await _check_admin(bot, event.chat.chat_id, user_id):
-            await safe_edit(event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb())
+            await safe_edit(
+                event, bot, "Вы не администратор этого чата.", chat_admin_menu_kb()
+            )
             return
         await fsm_context.set_state(ChatAdminStates.entering_rules)
         await safe_edit(event, bot, "Введите новые правила чата:", back_to_main_kb())
@@ -277,7 +311,9 @@ def register_chat_admin_handlers(dp: Dispatcher, storage: BaseStorage) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("adm:confirm:rules"))
-    async def confirm_rules(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+    async def confirm_rules(
+        event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+    ):
         data = await fsm_context.get_data()
         value = data.get("pending_value", "")
         await fsm_context.clear()

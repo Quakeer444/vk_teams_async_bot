@@ -41,7 +41,11 @@ class NestedMessage(VKTeamsFlexModel):
     @classmethod
     def _flatten_nested_payload(cls, data: dict) -> dict:
         """Flatten {eventId, type, payload: {...}} into a single dict."""
-        if isinstance(data, dict) and "payload" in data and isinstance(data["payload"], dict):
+        if (
+            isinstance(data, dict)
+            and "payload" in data
+            and isinstance(data["payload"], dict)
+        ):
             payload = data["payload"]
             return {**data, **payload}
         return data

@@ -3,9 +3,9 @@ from io import BytesIO
 
 import pytest
 
+from vk_teams_async_bot.errors import APIError
 from vk_teams_async_bot.types.chat import ChatInfoGroup, ChatInfoPrivate
 from vk_teams_async_bot.types.enums import ChatAction
-from vk_teams_async_bot.errors import APIError
 from vk_teams_async_bot.types.response import (
     AdminsResponse,
     MembersResponse,
@@ -27,7 +27,6 @@ TINY_PNG = (
 
 
 class TestChatInfo:
-
     async def test_get_chat_info_private(self, bot, test_user_id):
         result = await bot.get_chat_info(chat_id=test_user_id)
         assert isinstance(result, ChatInfoPrivate)
@@ -80,7 +79,6 @@ class TestChatInfo:
 
 
 class TestChatModification:
-
     async def test_set_chat_title(self, bot, test_group_id):
         ts = int(time.time())
         result = await bot.set_chat_title(
@@ -109,15 +107,11 @@ class TestChatModification:
     async def test_pin_unpin_message(self, bot, test_group_id):
         msg = await bot.send_text(chat_id=test_group_id, text="live test: pin me")
 
-        pin_result = await bot.pin_message(
-            chat_id=test_group_id, msg_id=msg.msg_id
-        )
+        pin_result = await bot.pin_message(chat_id=test_group_id, msg_id=msg.msg_id)
         assert isinstance(pin_result, OkResponse)
         assert pin_result.ok is True
 
-        unpin_result = await bot.unpin_message(
-            chat_id=test_group_id, msg_id=msg.msg_id
-        )
+        unpin_result = await bot.unpin_message(chat_id=test_group_id, msg_id=msg.msg_id)
         assert isinstance(unpin_result, OkResponse)
         assert unpin_result.ok is True
 
@@ -132,7 +126,6 @@ class TestChatModification:
 
 
 class TestChatMembers:
-
     async def test_delete_chat_members(self, bot, test_group_id, second_user_id):
         result = await bot.delete_chat_members(
             chat_id=test_group_id,

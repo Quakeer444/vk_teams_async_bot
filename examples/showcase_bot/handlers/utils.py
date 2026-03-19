@@ -1,7 +1,9 @@
 from vk_teams_async_bot import Bot, CallbackQueryEvent
 
 
-async def safe_edit(event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None, **kwargs):
+async def safe_edit(
+    event: CallbackQueryEvent, bot: Bot, text: str, keyboard=None, **kwargs
+):
     await bot.answer_callback_query(query_id=event.query_id)
     if event.message:
         await bot.edit_text(

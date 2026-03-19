@@ -29,7 +29,10 @@ class FakeMessageClient(MessageMethods):
 
 def _make_session() -> VKTeamsSession:
     return VKTeamsSession(
-        BASE_URL, BASE_PATH, TOKEN, timeout=5,
+        BASE_URL,
+        BASE_PATH,
+        TOKEN,
+        timeout=5,
         retry_policy=RetryPolicy(max_retries=0),
     )
 
@@ -48,7 +51,9 @@ class TestMultipartUpload:
                 )
                 client = FakeMessageClient(session)
                 result = await client.send_file(
-                    chat_id="chat1", file=str(test_file), caption="test file",
+                    chat_id="chat1",
+                    file=str(test_file),
+                    caption="test file",
                 )
                 assert isinstance(result, FileUploadResponse)
                 assert result.file_id == "file123"
@@ -74,10 +79,14 @@ class TestMultipartUpload:
     async def test_send_file_by_id(self):
         async with _make_session() as session:
             with aioresponses() as m:
-                m.get(SEND_FILE, payload={"ok": True, "msgId": "msg2", "fileId": "existing_file_id"})
+                m.get(
+                    SEND_FILE,
+                    payload={"ok": True, "msgId": "msg2", "fileId": "existing_file_id"},
+                )
                 client = FakeMessageClient(session)
                 result = await client.send_file(
-                    chat_id="chat1", file_id="existing_file_id",
+                    chat_id="chat1",
+                    file_id="existing_file_id",
                 )
                 assert isinstance(result, FileUploadResponse)
 
@@ -99,7 +108,8 @@ class TestSendVoiceUpload:
                 )
                 client = FakeMessageClient(session)
                 result = await client.send_voice(
-                    chat_id="chat1", file=str(test_file),
+                    chat_id="chat1",
+                    file=str(test_file),
                 )
                 assert isinstance(result, FileUploadResponse)
                 assert result.file_id == "voice123"
@@ -127,11 +137,16 @@ class TestSendVoiceUpload:
             with aioresponses() as m:
                 m.get(
                     SEND_VOICE,
-                    payload={"ok": True, "msgId": "msg2", "fileId": "existing_voice_id"},
+                    payload={
+                        "ok": True,
+                        "msgId": "msg2",
+                        "fileId": "existing_voice_id",
+                    },
                 )
                 client = FakeMessageClient(session)
                 result = await client.send_voice(
-                    chat_id="chat1", file_id="existing_voice_id",
+                    chat_id="chat1",
+                    file_id="existing_voice_id",
                 )
                 assert isinstance(result, FileUploadResponse)
 

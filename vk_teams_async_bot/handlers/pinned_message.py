@@ -13,7 +13,9 @@ class PinnedMessageHandler(BaseHandler):
         return isinstance(event, PinnedMessageEvent) and super().check(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return isinstance(event, PinnedMessageEvent) and await super().check_async(event)
+        return isinstance(event, PinnedMessageEvent) and await super().check_async(
+            event
+        )
 
 
 class UnpinnedMessageHandler(BaseHandler):
@@ -23,4 +25,6 @@ class UnpinnedMessageHandler(BaseHandler):
         return isinstance(event, UnpinnedMessageEvent) and super().check(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return isinstance(event, UnpinnedMessageEvent) and await super().check_async(event)
+        return isinstance(event, UnpinnedMessageEvent) and await super().check_async(
+            event
+        )

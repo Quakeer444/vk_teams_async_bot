@@ -14,7 +14,8 @@ def register_error_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:err"))
     async def show_error_menu(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Обработка ошибок\n\n"
             "Демонстрация перехвата и обработки ошибок API.\n"
             "Выберите сценарий:",

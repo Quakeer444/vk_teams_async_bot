@@ -38,7 +38,11 @@ class TestPollingLoop:
         dp = Dispatcher()
         handler_calls = []
 
-        dp.add_handler(MessageHandler(callback=AsyncMock(side_effect=lambda e, b: handler_calls.append(e))))
+        dp.add_handler(
+            MessageHandler(
+                callback=AsyncMock(side_effect=lambda e, b: handler_calls.append(e))
+            )
+        )
 
         call_count = 0
         events = [_make_event(event_id=10), _make_event(event_id=20, text="second")]

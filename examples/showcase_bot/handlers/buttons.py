@@ -42,18 +42,37 @@ def register_buttons_handlers(dp: Dispatcher) -> None:
     async def handle_compose(event: CallbackQueryEvent, bot: Bot):
         left = InlineKeyboardMarkup(buttons_in_row=1)
         left.add(
-            KeyboardButton(text="Клавиатура A -- кнопка 1", callback_data="btn:comp:a1", style=StyleKeyboard.PRIMARY),
-            KeyboardButton(text="Клавиатура A -- кнопка 2", callback_data="btn:comp:a2", style=StyleKeyboard.PRIMARY),
+            KeyboardButton(
+                text="Клавиатура A -- кнопка 1",
+                callback_data="btn:comp:a1",
+                style=StyleKeyboard.PRIMARY,
+            ),
+            KeyboardButton(
+                text="Клавиатура A -- кнопка 2",
+                callback_data="btn:comp:a2",
+                style=StyleKeyboard.PRIMARY,
+            ),
         )
         right = InlineKeyboardMarkup(buttons_in_row=1)
         right.add(
-            KeyboardButton(text="Клавиатура B -- кнопка 1", callback_data="btn:comp:b1", style=StyleKeyboard.ATTENTION),
-            KeyboardButton(text="Клавиатура B -- кнопка 2", callback_data="btn:comp:b2", style=StyleKeyboard.ATTENTION),
+            KeyboardButton(
+                text="Клавиатура B -- кнопка 1",
+                callback_data="btn:comp:b1",
+                style=StyleKeyboard.ATTENTION,
+            ),
+            KeyboardButton(
+                text="Клавиатура B -- кнопка 2",
+                callback_data="btn:comp:b2",
+                style=StyleKeyboard.ATTENTION,
+            ),
         )
         combined = left + right
-        combined = combined + KeyboardButton(text="<< В главное меню", callback_data="menu:main")
+        combined = combined + KeyboardButton(
+            text="<< В главное меню", callback_data="menu:main"
+        )
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Композиция клавиатур (оператор +)\n\n"
             "Две клавиатуры объединены в одну через InlineKeyboardMarkup.__add__.\n"
             "Также можно добавить одну кнопку: keyboard + KeyboardButton(...).",

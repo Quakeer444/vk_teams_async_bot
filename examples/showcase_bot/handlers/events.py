@@ -39,7 +39,8 @@ def register_events_handlers(dp: Dispatcher) -> None:
     async def stop_watching(event: CallbackQueryEvent, bot: Bot):
         _watching_chats.discard(event.chat.chat_id)
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Отслеживание событий остановлено.",
             events_info_kb(),
         )

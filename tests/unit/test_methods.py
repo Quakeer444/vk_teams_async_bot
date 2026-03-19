@@ -46,7 +46,6 @@ from vk_teams_async_bot.types.response import (
 )
 from vk_teams_async_bot.types.user import BotInfo
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -158,9 +157,7 @@ class TestSendText:
     async def test_with_reply(self, msg_mixin):
         msg_mixin._session.get.return_value = {"ok": True, "msgId": "102"}
 
-        result = await msg_mixin.send_text(
-            "chat1", "reply test", reply_msg_id=[5]
-        )
+        result = await msg_mixin.send_text("chat1", "reply test", reply_msg_id=[5])
 
         call_kwargs = msg_mixin._session.get.call_args[1]
         assert call_kwargs["replyMsgId"] == [5]
@@ -196,9 +193,7 @@ class TestSendText:
     @pytest.mark.asyncio
     async def test_forward_chat_without_msg_raises(self, msg_mixin):
         with pytest.raises(ValueError, match="together"):
-            await msg_mixin.send_text(
-                "chat1", "bad", forward_chat_id="other"
-            )
+            await msg_mixin.send_text("chat1", "bad", forward_chat_id="other")
 
     @pytest.mark.asyncio
     async def test_forward_msg_without_chat_raises(self, msg_mixin):
@@ -249,9 +244,7 @@ class TestSendText:
         mock_kb = MagicMock()
         mock_kb.to_json.return_value = '[[{"text":"OK"}]]'
 
-        await msg_mixin.send_text(
-            "chat1", "kb", inline_keyboard_markup=mock_kb
-        )
+        await msg_mixin.send_text("chat1", "kb", inline_keyboard_markup=mock_kb)
 
         call_kwargs = msg_mixin._session.get.call_args[1]
         assert call_kwargs["inlineKeyboardMarkup"] == '[[{"text":"OK"}]]'
@@ -260,11 +253,13 @@ class TestSendText:
 class TestSendFile:
     @pytest.mark.asyncio
     async def test_with_file_id(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "200", "fileId": "abc123"}
+        msg_mixin._session.get.return_value = {
+            "ok": True,
+            "msgId": "200",
+            "fileId": "abc123",
+        }
 
-        result = await msg_mixin.send_file(
-            "chat1", file_id="abc123", caption="My file"
-        )
+        result = await msg_mixin.send_file("chat1", file_id="abc123", caption="My file")
 
         msg_mixin._session.get.assert_awaited_once()
         call_kwargs = msg_mixin._session.get.call_args
@@ -318,9 +313,7 @@ class TestSendFile:
         test_file.write_text("data")
 
         with pytest.raises(ValueError, match="mutually exclusive"):
-            await msg_mixin.send_file(
-                "chat1", file_id="abc", file=str(test_file)
-            )
+            await msg_mixin.send_file("chat1", file_id="abc", file=str(test_file))
 
     @pytest.mark.asyncio
     async def test_neither_file_id_nor_file_raises(self, msg_mixin):
@@ -329,7 +322,11 @@ class TestSendFile:
 
     @pytest.mark.asyncio
     async def test_with_all_get_params(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "203", "fileId": "fid"}
+        msg_mixin._session.get.return_value = {
+            "ok": True,
+            "msgId": "203",
+            "fileId": "fid",
+        }
 
         result = await msg_mixin.send_file(
             "chat1",
@@ -372,7 +369,11 @@ class TestSendFile:
 class TestSendVoice:
     @pytest.mark.asyncio
     async def test_with_file_id(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "300", "fileId": "voice123"}
+        msg_mixin._session.get.return_value = {
+            "ok": True,
+            "msgId": "300",
+            "fileId": "voice123",
+        }
 
         result = await msg_mixin.send_voice("chat1", file_id="voice123")
 
@@ -403,9 +404,7 @@ class TestSendVoice:
         voice.write_bytes(b"\x00")
 
         with pytest.raises(ValueError, match="mutually exclusive"):
-            await msg_mixin.send_voice(
-                "chat1", file_id="abc", file=str(voice)
-            )
+            await msg_mixin.send_voice("chat1", file_id="abc", file=str(voice))
 
     @pytest.mark.asyncio
     async def test_neither_raises(self, msg_mixin):
@@ -414,7 +413,11 @@ class TestSendVoice:
 
     @pytest.mark.asyncio
     async def test_with_forward(self, msg_mixin):
-        msg_mixin._session.get.return_value = {"ok": True, "msgId": "302", "fileId": "v1"}
+        msg_mixin._session.get.return_value = {
+            "ok": True,
+            "msgId": "302",
+            "fileId": "v1",
+        }
 
         result = await msg_mixin.send_voice(
             "chat1",
@@ -564,7 +567,9 @@ class TestDownloadFile:
         from vk_teams_async_bot.errors import APIError
 
         msg_mixin._session.download = AsyncMock(
-            side_effect=APIError(404, "HTTP 404 downloading https://files.example.com/f1")
+            side_effect=APIError(
+                404, "HTTP 404 downloading https://files.example.com/f1"
+            )
         )
         with pytest.raises(APIError):
             await msg_mixin.download_file("https://files.example.com/f1")
@@ -606,9 +611,7 @@ class TestCreateChat:
         assert call_kwargs["name"] == "Full Chat"
         assert call_kwargs["about"] == "Description"
         assert call_kwargs["rules"] == "Be nice"
-        assert call_kwargs["members"] == json.dumps(
-            [{"sn": "user1"}, {"sn": "user2"}]
-        )
+        assert call_kwargs["members"] == json.dumps([{"sn": "user1"}, {"sn": "user2"}])
         assert call_kwargs["public"] == "true"
         assert call_kwargs["defaultRole"] == "member"
         assert call_kwargs["joinModeration"] == "false"
@@ -641,14 +644,10 @@ class TestAddChatMembers:
     async def test_happy_path(self, chat_mixin):
         chat_mixin._session.get.return_value = {"ok": True}
 
-        result = await chat_mixin.add_chat_members(
-            "chat1", ["user1", "user2"]
-        )
+        result = await chat_mixin.add_chat_members("chat1", ["user1", "user2"])
 
         call_kwargs = chat_mixin._session.get.call_args[1]
-        assert call_kwargs["members"] == json.dumps(
-            [{"sn": "user1"}, {"sn": "user2"}]
-        )
+        assert call_kwargs["members"] == json.dumps([{"sn": "user1"}, {"sn": "user2"}])
         assert isinstance(result, PartialSuccessResponse)
 
     @pytest.mark.asyncio
@@ -658,9 +657,7 @@ class TestAddChatMembers:
             "failures": [{"id": "user2", "error": "User not found"}],
         }
 
-        result = await chat_mixin.add_chat_members(
-            "chat1", ["user1", "user2"]
-        )
+        result = await chat_mixin.add_chat_members("chat1", ["user1", "user2"])
 
         assert isinstance(result, PartialSuccessResponse)
         assert len(result.failures) == 1
@@ -684,9 +681,7 @@ class TestSendChatActions:
     async def test_happy_path(self, chat_mixin):
         chat_mixin._session.get.return_value = {"ok": True}
 
-        result = await chat_mixin.send_chat_actions(
-            "chat1", [ChatAction.TYPING]
-        )
+        result = await chat_mixin.send_chat_actions("chat1", [ChatAction.TYPING])
 
         call_kwargs = chat_mixin._session.get.call_args
         assert call_kwargs[0][0] == "/chats/sendActions"
@@ -794,9 +789,7 @@ class TestGetChatMembers:
             "members": [{"userId": "m3"}],
         }
 
-        result = await chat_mixin.get_chat_members(
-            "chat1", cursor="page2"
-        )
+        result = await chat_mixin.get_chat_members("chat1", cursor="page2")
 
         call_kwargs = chat_mixin._session.get.call_args[1]
         assert call_kwargs["cursor"] == "page2"
@@ -806,9 +799,7 @@ class TestGetChatMembers:
 class TestGetBlockedUsers:
     @pytest.mark.asyncio
     async def test_happy_path(self, chat_mixin):
-        chat_mixin._session.get.return_value = {
-            "users": [{"userId": "blocked1"}]
-        }
+        chat_mixin._session.get.return_value = {"users": [{"userId": "blocked1"}]}
 
         result = await chat_mixin.get_blocked_users("chat1")
 
@@ -849,9 +840,7 @@ class TestBlockUser:
     async def test_with_del_messages(self, chat_mixin):
         chat_mixin._session.get.return_value = {"ok": True}
 
-        await chat_mixin.block_user(
-            "chat1", "baduser", del_last_messages=True
-        )
+        await chat_mixin.block_user("chat1", "baduser", del_last_messages=True)
 
         call_kwargs = chat_mixin._session.get.call_args[1]
         assert call_kwargs["delLastMessages"] == "true"
@@ -875,9 +864,7 @@ class TestResolvePending:
     async def test_with_user_id(self, chat_mixin):
         chat_mixin._session.get.return_value = {"ok": True}
 
-        result = await chat_mixin.resolve_pending(
-            "chat1", True, user_id="user1"
-        )
+        result = await chat_mixin.resolve_pending("chat1", True, user_id="user1")
 
         call_kwargs = chat_mixin._session.get.call_args
         assert call_kwargs[0][0] == "/chats/resolvePending"
@@ -889,9 +876,7 @@ class TestResolvePending:
     async def test_with_everyone(self, chat_mixin):
         chat_mixin._session.get.return_value = {"ok": True}
 
-        result = await chat_mixin.resolve_pending(
-            "chat1", False, everyone=True
-        )
+        result = await chat_mixin.resolve_pending("chat1", False, everyone=True)
 
         call_kwargs = chat_mixin._session.get.call_args[1]
         assert call_kwargs["approve"] == "false"
@@ -901,9 +886,7 @@ class TestResolvePending:
     @pytest.mark.asyncio
     async def test_both_raises(self, chat_mixin):
         with pytest.raises(ValueError, match="Exactly one"):
-            await chat_mixin.resolve_pending(
-                "chat1", True, user_id="u1", everyone=True
-            )
+            await chat_mixin.resolve_pending("chat1", True, user_id="u1", everyone=True)
 
     @pytest.mark.asyncio
     async def test_neither_raises(self, chat_mixin):

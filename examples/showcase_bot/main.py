@@ -1,3 +1,4 @@
+import argparse
 import asyncio
 import logging
 import os
@@ -20,8 +21,6 @@ from .handlers import register_all_handlers
 from .handlers.di_demo import register_di_dependencies
 from .handlers.events import _watching_chats
 from .keyboards import MAIN_MENU_TEXT, main_menu_kb
-
-import argparse
 
 _parser = argparse.ArgumentParser()
 _parser.add_argument("--log-level", default="INFO")
@@ -48,11 +47,23 @@ class LoggingMiddleware(BaseMiddleware):
         try:
             result = await handler(event, data)
             elapsed = (time.monotonic() - start) * 1000
-            logger.info("Event %s chat=%s user=%s processed in %.1fms", event_type, chat_id, user_id, elapsed)
+            logger.info(
+                "Event %s chat=%s user=%s processed in %.1fms",
+                event_type,
+                chat_id,
+                user_id,
+                elapsed,
+            )
             return result
         except Exception:
             elapsed = (time.monotonic() - start) * 1000
-            logger.exception("Event %s chat=%s user=%s failed after %.1fms", event_type, chat_id, user_id, elapsed)
+            logger.exception(
+                "Event %s chat=%s user=%s failed after %.1fms",
+                event_type,
+                chat_id,
+                user_id,
+                elapsed,
+            )
             raise
 
 
@@ -131,7 +142,7 @@ async def main() -> None:
             await bot.send_text(
                 chat_id=event.chat.chat_id,
                 text=(
-                    "Это обработчик зарегистрирован через @dp.command(\"demo_cmd\").\n\n"
+                    'Это обработчик зарегистрирован через @dp.command("demo_cmd").\n\n'
                     "@dp.command(cmd) -- это сокращение для @dp.message(CommandFilter(cmd)).\n"
                     "Оба варианта полностью эквивалентны."
                 ),
@@ -139,7 +150,9 @@ async def main() -> None:
 
         # Back to main menu callback
         @dp.callback_query(CallbackDataFilter("menu:main"))
-        async def back_to_main(event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext):
+        async def back_to_main(
+            event: CallbackQueryEvent, bot: Bot, fsm_context: FSMContext
+        ):
             await fsm_context.clear()
             _watching_chats.discard(event.chat.chat_id)
             await bot.answer_callback_query(query_id=event.query_id)

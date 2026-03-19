@@ -131,9 +131,13 @@ class VKTeamsSession:
             try:
                 async with session.get(url) as resp:
                     if resp.status >= 500:
-                        raise ServerError(resp.status, f"Server error downloading {url}")
+                        raise ServerError(
+                            resp.status, f"Server error downloading {url}"
+                        )
                     if resp.status >= 400:
-                        raise APIError(resp.status, f"HTTP {resp.status} downloading {url}")
+                        raise APIError(
+                            resp.status, f"HTTP {resp.status} downloading {url}"
+                        )
                     return await resp.read()
             except _RETRIABLE_ERRORS as exc:
                 last_error = exc

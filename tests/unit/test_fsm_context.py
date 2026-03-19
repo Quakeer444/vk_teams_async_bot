@@ -27,9 +27,7 @@ def ctx(storage: MemoryStorage) -> FSMContext:
 
 class TestFSMContextSetState:
     @pytest.mark.asyncio
-    async def test_set_state_with_state_object(
-        self, ctx: FSMContext
-    ) -> None:
+    async def test_set_state_with_state_object(self, ctx: FSMContext) -> None:
         await ctx.set_state(OrderForm.waiting_for_name)
         result = await ctx.get_state()
         assert result == "OrderForm:waiting_for_name"

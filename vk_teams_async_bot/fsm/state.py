@@ -72,11 +72,7 @@ class StatesGroup:
     @classmethod
     def all_states(cls) -> list[State]:
         """Return all State instances defined on this group."""
-        return [
-            value
-            for value in cls.__dict__.values()
-            if isinstance(value, State)
-        ]
+        return [value for value in cls.__dict__.values() if isinstance(value, State)]
 
     @classmethod
     def all_state_names(cls) -> list[str]:

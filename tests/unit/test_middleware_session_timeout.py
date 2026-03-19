@@ -121,7 +121,10 @@ class TestOnTimeoutCallback:
             calls.append((chat_id, user_id))
 
         mw = SessionTimeoutMiddleware(
-            storage, timeout=1, check_interval=9999, on_timeout=on_timeout,
+            storage,
+            timeout=1,
+            check_interval=9999,
+            on_timeout=on_timeout,
         )
         key = ("chat1", "user1")
         await storage.set_state(key, "SomeState:active")
@@ -132,12 +135,17 @@ class TestOnTimeoutCallback:
         assert calls == [("chat1", "user1")]
 
     @pytest.mark.asyncio
-    async def test_on_timeout_exception_does_not_propagate(self, storage: MemoryStorage):
+    async def test_on_timeout_exception_does_not_propagate(
+        self, storage: MemoryStorage
+    ):
         async def bad_callback(chat_id: str, user_id: str) -> None:
             raise RuntimeError("callback error")
 
         mw = SessionTimeoutMiddleware(
-            storage, timeout=1, check_interval=9999, on_timeout=bad_callback,
+            storage,
+            timeout=1,
+            check_interval=9999,
+            on_timeout=bad_callback,
         )
         key = ("chat1", "user1")
         await storage.set_state(key, "SomeState:active")

@@ -32,7 +32,10 @@ class FakeEventClient(EventMethods):
 
 def _make_session() -> VKTeamsSession:
     return VKTeamsSession(
-        BASE_URL, BASE_PATH, TOKEN, timeout=5,
+        BASE_URL,
+        BASE_PATH,
+        TOKEN,
+        timeout=5,
         retry_policy=RetryPolicy(max_retries=0),
     )
 
@@ -61,7 +64,11 @@ class TestLongPoll:
                                 "type": "newMessage",
                                 "payload": {
                                     "msgId": "msg1",
-                                    "chat": {"chatId": "chat1", "type": "private", "title": ""},
+                                    "chat": {
+                                        "chatId": "chat1",
+                                        "type": "private",
+                                        "title": "",
+                                    },
                                     "from": {"userId": "user1", "firstName": "Test"},
                                     "text": "hello",
                                     "timestamp": 1234567890,
@@ -114,7 +121,11 @@ class TestLongPoll:
                                 "type": "newMessage",
                                 "payload": {
                                     "msgId": "m1",
-                                    "chat": {"chatId": "c1", "type": "private", "title": ""},
+                                    "chat": {
+                                        "chatId": "c1",
+                                        "type": "private",
+                                        "title": "",
+                                    },
                                     "from": {"userId": "u1", "firstName": "A"},
                                     "text": "hi",
                                     "timestamp": 100,
@@ -129,7 +140,11 @@ class TestLongPoll:
                                 "eventId": 3,
                                 "type": "callbackQuery",
                                 "payload": {
-                                    "chat": {"chatId": "c1", "type": "private", "title": ""},
+                                    "chat": {
+                                        "chatId": "c1",
+                                        "type": "private",
+                                        "title": "",
+                                    },
                                     "from": {"userId": "u1", "firstName": "A"},
                                     "queryId": "q1",
                                     "callbackData": "btn1",

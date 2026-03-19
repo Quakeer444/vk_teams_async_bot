@@ -13,4 +13,6 @@ class CallbackQueryHandler(BaseHandler):
         return isinstance(event, CallbackQueryEvent) and super().check(event)
 
     async def check_async(self, event: BaseEvent) -> bool:
-        return isinstance(event, CallbackQueryEvent) and await super().check_async(event)
+        return isinstance(event, CallbackQueryEvent) and await super().check_async(
+            event
+        )

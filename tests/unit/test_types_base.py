@@ -1,7 +1,11 @@
 import pytest
 from pydantic import ValidationError
 
-from vk_teams_async_bot.types.base import VKTeamsFlexModel, VKTeamsModel, VKTeamsResponseModel
+from vk_teams_async_bot.types.base import (
+    VKTeamsFlexModel,
+    VKTeamsModel,
+    VKTeamsResponseModel,
+)
 
 
 class StrictModel(VKTeamsModel):

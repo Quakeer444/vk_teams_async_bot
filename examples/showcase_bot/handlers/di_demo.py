@@ -2,12 +2,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Annotated, AsyncGenerator
 
-from vk_teams_async_bot import (
-    Bot,
-    CallbackDataFilter,
-    CallbackQueryEvent,
-    Dispatcher,
-)
+from vk_teams_async_bot import Bot, CallbackDataFilter, CallbackQueryEvent, Dispatcher
 
 from ..keyboards import di_menu_kb
 from .utils import safe_edit
@@ -109,7 +104,9 @@ def register_di_handlers(dp: Dispatcher) -> None:
         )
 
     @dp.callback_query(CallbackDataFilter("di:annotated"))
-    async def di_annotated(event: CallbackQueryEvent, bot: Bot, cfg: Annotated[AppConfig, get_config]):
+    async def di_annotated(
+        event: CallbackQueryEvent, bot: Bot, cfg: Annotated[AppConfig, get_config]
+    ):
         await bot.answer_callback_query(query_id=event.query_id)
         await bot.send_text(
             chat_id=event.chat.chat_id,

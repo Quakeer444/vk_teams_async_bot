@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Any, Callable, Awaitable
+from typing import Any, Awaitable, Callable
 
 from ..fsm.context import FSMContext
 from ..fsm.storage.base import BaseStorage, StorageKey
@@ -79,7 +79,9 @@ class SessionTimeoutMiddleware(BaseMiddleware):
 
         for key in expired:
             current_ts = self._timestamps.get(key)
-            if current_ts is None or now - current_ts <= timedelta(seconds=self._timeout):
+            if current_ts is None or now - current_ts <= timedelta(
+                seconds=self._timeout
+            ):
                 continue
             self._timestamps.pop(key, None)
             state = await self._storage.get_state(key)
@@ -91,9 +93,7 @@ class SessionTimeoutMiddleware(BaseMiddleware):
                     try:
                         await self._on_timeout(chat_id, user_id)
                     except Exception:
-                        logger.exception(
-                            "Error in timeout callback for %s", key
-                        )
+                        logger.exception("Error in timeout callback for %s", key)
 
     async def close(self) -> None:
         """Cancel the background checker task."""

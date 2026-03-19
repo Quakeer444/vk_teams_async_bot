@@ -1,9 +1,4 @@
-from vk_teams_async_bot import (
-    Bot,
-    CallbackDataFilter,
-    CallbackQueryEvent,
-    Dispatcher,
-)
+from vk_teams_async_bot import Bot, CallbackDataFilter, CallbackQueryEvent, Dispatcher
 
 from ..keyboards import category_framework_kb
 from .utils import safe_edit
@@ -43,7 +38,7 @@ def register_framework_handlers(dp: Dispatcher) -> None:
             "        start = time.monotonic()\n"
             "        result = await handler(event, data)\n"
             "        elapsed = time.monotonic() - start\n"
-            "        logger.info(\"Processed in %.1fms\", elapsed * 1000)\n"
+            '        logger.info("Processed in %.1fms", elapsed * 1000)\n'
             "        return result"
         )
         await safe_edit(event, bot, text, category_framework_kb())
@@ -56,11 +51,11 @@ def register_framework_handlers(dp: Dispatcher) -> None:
             "@bot.on_startup\n"
             "async def startup(bot: Bot):\n"
             "    info = await bot.get_self()\n"
-            "    logger.info(\"Bot started: %s\", info.nick)\n\n"
+            '    logger.info("Bot started: %s", info.nick)\n\n'
             "@bot.on_shutdown\n"
             "async def shutdown(bot: Bot):\n"
             "    await cleanup_resources()\n"
-            "    logger.info(\"Bot stopped\")\n\n"
+            '    logger.info("Bot stopped")\n\n'
             "startup вызывается перед началом polling.\n"
             "shutdown -- при завершении работы бота."
         )

@@ -4,11 +4,7 @@ from __future__ import annotations
 
 import logging
 
-from vk_teams_async_bot.types.event import (
-    BaseEvent,
-    RawUnknownEvent,
-    parse_event,
-)
+from vk_teams_async_bot.types.event import BaseEvent, RawUnknownEvent, parse_event
 
 from .base import BaseMethods
 

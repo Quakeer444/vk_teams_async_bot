@@ -23,7 +23,6 @@ from vk_teams_async_bot.types.event import (
     parse_event,
 )
 
-
 # -- Fixtures ------------------------------------------------------------------
 
 
@@ -507,7 +506,9 @@ class TestStatefulCallbackFlow:
 
         dp.add_handler(
             CallbackQueryHandler(
-                callback=AsyncMock(side_effect=lambda e, b: callback_received.append(e)),
+                callback=AsyncMock(
+                    side_effect=lambda e, b: callback_received.append(e)
+                ),
                 filters=StateFilter(Flow.waiting_callback, storage=storage),
             )
         )
@@ -534,7 +535,9 @@ class TestStatefulCallbackFlow:
 
         dp.add_handler(
             CallbackQueryHandler(
-                callback=AsyncMock(side_effect=lambda e, b: callback_received.append(e)),
+                callback=AsyncMock(
+                    side_effect=lambda e, b: callback_received.append(e)
+                ),
                 filters=StateFilter(Flow.waiting_callback, storage=storage),
             )
         )
@@ -576,9 +579,12 @@ class TestUserLockStability:
 
         # Events for same user must be serialized (not interleaved)
         assert order == [
-            "start:first", "end:first",
-            "start:second", "end:second",
-            "start:third", "end:third",
+            "start:first",
+            "end:first",
+            "start:second",
+            "end:second",
+            "start:third",
+            "end:third",
         ]
         # Lock remains in the dict (not deleted after use)
         assert ("c1", "u1") in dp._user_locks

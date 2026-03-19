@@ -22,9 +22,15 @@ SELF_GET = re.compile(r".*/bot/v1/self/get")
 
 def _make_session(max_retries: int = 2) -> VKTeamsSession:
     return VKTeamsSession(
-        BASE_URL, BASE_PATH, TOKEN, timeout=5,
+        BASE_URL,
+        BASE_PATH,
+        TOKEN,
+        timeout=5,
         retry_policy=RetryPolicy(
-            max_retries=max_retries, base_delay=0.0, max_delay=0.0, jitter=False,
+            max_retries=max_retries,
+            base_delay=0.0,
+            max_delay=0.0,
+            jitter=False,
         ),
     )
 
@@ -72,7 +78,11 @@ class TestOkFalseHandling:
     async def test_4xx_raises_api_error(self):
         async with _make_session(max_retries=0) as session:
             with aioresponses() as m:
-                m.get(SELF_GET, payload={"ok": False, "description": "Not found"}, status=404)
+                m.get(
+                    SELF_GET,
+                    payload={"ok": False, "description": "Not found"},
+                    status=404,
+                )
                 with pytest.raises(APIError) as exc_info:
                     await session.get("/self/get")
                 assert exc_info.value.status_code == 404

@@ -16,7 +16,8 @@ def register_formatting_handlers(dp: Dispatcher) -> None:
     @dp.callback_query(CallbackDataFilter("menu:fmt"))
     async def show_formatting(event: CallbackQueryEvent, bot: Bot):
         await safe_edit(
-            event, bot,
+            event,
+            bot,
             "Оформление текста\n\nСравните три способа форматирования сообщений.\nВыберите режим:",
             formatting_menu_kb(),
         )
