@@ -22,7 +22,10 @@ class MemoryStorage(BaseStorage):
         return self._states.get(key)
 
     async def set_state(self, key: StorageKey, state: str | None) -> None:
-        self._states[key] = state
+        if state is None:
+            self._states.pop(key, None)
+        else:
+            self._states[key] = state
 
     async def get_data(self, key: StorageKey) -> dict[str, Any]:
         return self._data.get(key, {}).copy()

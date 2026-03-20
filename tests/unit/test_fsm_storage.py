@@ -39,6 +39,16 @@ class TestMemoryStorageState:
         assert result is None
 
     @pytest.mark.asyncio
+    async def test_set_state_none_removes_key_from_dict(
+        self, storage: MemoryStorage
+    ) -> None:
+        key = ("chat1", "user1")
+        await storage.set_state(key, "some_state")
+        assert key in storage._states
+        await storage.set_state(key, None)
+        assert key not in storage._states  # Key must be removed, not stored as None
+
+    @pytest.mark.asyncio
     async def test_set_state_overwrites(self, storage: MemoryStorage) -> None:
         await storage.set_state(KEY_A, "step_one")
         await storage.set_state(KEY_A, "step_two")
