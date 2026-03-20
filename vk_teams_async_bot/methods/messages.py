@@ -5,11 +5,16 @@ from __future__ import annotations
 import asyncio
 import json
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING
 
 from aiohttp import FormData
 
 from vk_teams_async_bot.types.enums import ParseMode
+
+if TYPE_CHECKING:
+    from vk_teams_async_bot.types.format_ import Format
+    from vk_teams_async_bot.types.keyboard import InlineKeyboardMarkup
+
 from vk_teams_async_bot.types.response import (
     FileUploadResponse,
     MessageResponse,
@@ -25,7 +30,7 @@ from .base import BaseMethods
 
 
 def _serialize_keyboard(
-    markup: Any | None,
+    markup: InlineKeyboardMarkup | str | None,
 ) -> str | None:
     """Convert an InlineKeyboardMarkup (or raw string) to a JSON string."""
     if markup is None:
@@ -37,7 +42,7 @@ def _serialize_keyboard(
     return result
 
 
-def _serialize_format(fmt: Any | None) -> str | None:
+def _serialize_format(fmt: Format | dict | str | None) -> str | None:
     """Serialize a Format object, dict, or string for the ``format`` param."""
     if fmt is None:
         return None
@@ -54,9 +59,9 @@ def _serialize_format(fmt: Any | None) -> str | None:
 
 
 def _validate_reply_forward(
-    reply_msg_id: Any | None,
+    reply_msg_id: str | int | None,
     forward_chat_id: str | None,
-    forward_msg_id: Any | None,
+    forward_msg_id: str | int | None,
 ) -> None:
     """Enforce mutual exclusion between reply and forward params."""
     has_reply = reply_msg_id is not None
@@ -73,7 +78,7 @@ def _validate_reply_forward(
 
 def _validate_parse_format(
     parse_mode: ParseMode | None,
-    format_: Any | None,
+    format_: Format | dict | str | None,
 ) -> None:
     """Enforce mutual exclusion between parseMode and format."""
     if parse_mode is not None and format_ is not None:
@@ -82,7 +87,7 @@ def _validate_parse_format(
 
 def _validate_file_source(
     file_id: str | None,
-    file: Any | None,
+    file: str | Path | tuple | None,
 ) -> None:
     """Exactly one of file_id or file must be provided."""
     if file_id is not None and file is not None:
@@ -132,11 +137,11 @@ class MessageMethods(BaseMethods):
         chat_id: str,
         text: str,
         *,
-        reply_msg_id: Any | None = None,
+        reply_msg_id: str | int | None = None,
         forward_chat_id: str | None = None,
-        forward_msg_id: Any | None = None,
-        inline_keyboard_markup: Any | None = None,
-        format_: Any | None = None,
+        forward_msg_id: str | int | None = None,
+        inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+        format_: Format | dict | str | None = None,
         parse_mode: ParseMode | None = None,
     ) -> MessageResponse:
         """Send a text message.
@@ -166,11 +171,11 @@ class MessageMethods(BaseMethods):
         file_id: str | None = None,
         file: str | Path | tuple | None = None,
         caption: str | None = None,
-        reply_msg_id: Any | None = None,
+        reply_msg_id: str | int | None = None,
         forward_chat_id: str | None = None,
-        forward_msg_id: Any | None = None,
-        inline_keyboard_markup: Any | None = None,
-        format_: Any | None = None,
+        forward_msg_id: str | int | None = None,
+        inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+        format_: Format | dict | str | None = None,
         parse_mode: ParseMode | None = None,
     ) -> FileUploadResponse:
         """Send a file.
@@ -222,10 +227,10 @@ class MessageMethods(BaseMethods):
         *,
         file_id: str | None = None,
         file: str | Path | tuple | None = None,
-        reply_msg_id: Any | None = None,
+        reply_msg_id: str | int | None = None,
         forward_chat_id: str | None = None,
-        forward_msg_id: Any | None = None,
-        inline_keyboard_markup: Any | None = None,
+        forward_msg_id: str | int | None = None,
+        inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
     ) -> FileUploadResponse:
         """Send a voice message.
 
@@ -268,8 +273,8 @@ class MessageMethods(BaseMethods):
         msg_id: str | int,
         text: str,
         *,
-        inline_keyboard_markup: Any | None = None,
-        format_: Any | None = None,
+        inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+        format_: Format | dict | str | None = None,
         parse_mode: ParseMode | None = None,
     ) -> OkResponse:
         """Edit a text message.

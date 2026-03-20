@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.0.0 (2026-03-14)
+## 1.0.0 (2026-03-21)
 
 This is a major release with a full rewrite of the library architecture. See [MIGRATION.md](MIGRATION.md) for upgrade instructions.
 

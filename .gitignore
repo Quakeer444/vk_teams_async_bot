@@ -223,3 +223,4 @@ CL*
 .cl*
 .pytest_cache/
 docs/
+.mypy_cache/
