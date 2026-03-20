@@ -21,26 +21,24 @@ class ChatInfoPrivate(VKTeamsResponseModel):
     photo: list[PhotoUrl] | None = None
 
 
-class ChatInfoGroup(VKTeamsResponseModel):
+class _ChatInfoGroupLike(VKTeamsResponseModel):
+    """Shared fields for group and channel chat info."""
+
     ok: bool = True
+    title: str | None = None
+    about: str | None = None
+    rules: str | None = None
+    invite_link: str | None = Field(default=None, alias="inviteLink")
+    public: bool | None = None
+    join_moderation: bool | None = Field(default=None, alias="joinModeration")
+
+
+class ChatInfoGroup(_ChatInfoGroupLike):
     type: Literal[ChatType.GROUP] = ChatType.GROUP
-    title: str | None = None
-    about: str | None = None
-    rules: str | None = None
-    invite_link: str | None = Field(default=None, alias="inviteLink")
-    public: bool | None = None
-    join_moderation: bool | None = Field(default=None, alias="joinModeration")
 
 
-class ChatInfoChannel(VKTeamsResponseModel):
-    ok: bool = True
+class ChatInfoChannel(_ChatInfoGroupLike):
     type: Literal[ChatType.CHANNEL] = ChatType.CHANNEL
-    title: str | None = None
-    about: str | None = None
-    rules: str | None = None
-    invite_link: str | None = Field(default=None, alias="inviteLink")
-    public: bool | None = None
-    join_moderation: bool | None = Field(default=None, alias="joinModeration")
 
 
 ChatInfoResponse = Annotated[
