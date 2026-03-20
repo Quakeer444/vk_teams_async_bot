@@ -49,11 +49,14 @@ class Dispatcher:
     def __init__(
         self,
         storage: BaseStorage | None = None,
+        lock_sweep_interval: float = 60.0,
     ) -> None:
         self.handlers: list[BaseHandler] = []
         self.middleware = MiddlewareManager()
         self._storage = storage
         self._user_locks: dict[tuple[str, str], asyncio.Lock] = {}
+        self._lock_sweep_interval = lock_sweep_interval
+        self._sweep_task: asyncio.Task[None] | None = None
 
     def add_middleware(self, mw: BaseMiddleware) -> None:
         """Register a middleware instance."""
@@ -265,6 +268,29 @@ class Dispatcher:
 
             await handler.handle(event, bot, extra_kwargs=data)
             return
+
+    def start_sweep_task(self) -> None:
+        """Start the periodic lock sweep background task."""
+        if self._sweep_task is None or self._sweep_task.done():
+            self._sweep_task = asyncio.create_task(self._sweep_loop())
+
+    async def _sweep_loop(self) -> None:
+        """Periodically sweep idle user locks."""
+        while True:
+            await asyncio.sleep(self._lock_sweep_interval)
+            try:
+                self._sweep_idle_locks()
+            except Exception:
+                logger.exception("Error during lock sweep")
+
+    async def stop_sweep_task(self) -> None:
+        """Cancel the periodic lock sweep background task."""
+        if self._sweep_task and not self._sweep_task.done():
+            self._sweep_task.cancel()
+            try:
+                await self._sweep_task
+            except asyncio.CancelledError:
+                pass
 
     def _sweep_idle_locks(self) -> None:
         """Remove user locks not currently held and without pending waiters.

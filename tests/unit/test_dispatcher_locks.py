@@ -79,3 +79,15 @@ async def test_locks_dict_bounded_after_sweep(dispatcher):
     assert len(dispatcher._user_locks) == 1000
     dispatcher._sweep_idle_locks()
     assert len(dispatcher._user_locks) == 0
+
+
+@pytest.mark.asyncio
+async def test_sweep_task_cleans_idle_locks():
+    """Timer-based sweep task should automatically clean up idle locks."""
+    d = Dispatcher(lock_sweep_interval=0.01)
+    lock = asyncio.Lock()
+    d._user_locks[("chat", "user")] = lock
+    d.start_sweep_task()
+    await asyncio.sleep(0.05)
+    await d.stop_sweep_task()
+    assert ("chat", "user") not in d._user_locks

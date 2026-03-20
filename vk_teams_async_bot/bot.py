@@ -176,6 +176,7 @@ class Bot(
             await hook(self)
 
         self._running = True
+        dispatcher.start_sweep_task()
         logger.info("Bot polling started")
 
         try:
@@ -184,6 +185,7 @@ class Bot(
             self._running = False
             logger.info("Bot polling stopped")
 
+            await dispatcher.stop_sweep_task()
             await self._drain_tasks()
 
             # Run shutdown hooks after handlers have finished
@@ -206,7 +208,6 @@ class Bot(
         """Core polling loop: fetch events and dispatch them."""
         backoff = 0.0
         max_backoff = 60.0
-        _sweep_counter = 0
         while self._running:
             try:
                 events = await self.get_events(
@@ -220,11 +221,6 @@ class Bot(
                     task = asyncio.create_task(self._safe_dispatch(dispatcher, event))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._task_done)
-
-                _sweep_counter += 1
-                if _sweep_counter >= 1000:
-                    dispatcher._sweep_idle_locks()
-                    _sweep_counter = 0
 
             except Exception as exc:
                 if not self._running:
