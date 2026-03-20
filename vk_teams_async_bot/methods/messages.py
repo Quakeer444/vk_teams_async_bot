@@ -16,6 +16,7 @@ from vk_teams_async_bot.types.response import (
     OkResponse,
 )
 
+from ._helpers import bool_str as _bool_str
 from .base import BaseMethods
 
 # ---------------------------------------------------------------------------
@@ -320,9 +321,7 @@ class MessageMethods(BaseMethods):
             "/messages/answerCallbackQuery",
             queryId=query_id,
             text=text,
-            showAlert="true"
-            if show_alert
-            else ("false" if show_alert is not None else None),
+            showAlert=_bool_str(show_alert),
             url=url,
         )
         return OkResponse.model_validate(raw)

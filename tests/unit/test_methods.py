@@ -44,7 +44,25 @@ from vk_teams_async_bot.types.response import (
     PartialSuccessResponse,
     UsersResponse,
 )
+from vk_teams_async_bot.methods._helpers import bool_str
 from vk_teams_async_bot.types.user import BotInfo
+
+
+# ===================================================================
+# bool_str helper
+# ===================================================================
+
+
+class TestBoolStr:
+    def test_true(self):
+        assert bool_str(True) == "true"
+
+    def test_false(self):
+        assert bool_str(False) == "false"
+
+    def test_none(self):
+        assert bool_str(None) is None
+
 
 # ---------------------------------------------------------------------------
 # Fixtures

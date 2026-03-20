@@ -21,6 +21,7 @@ from vk_teams_async_bot.types.response import (
     UsersResponse,
 )
 
+from ._helpers import bool_str as _bool_str
 from .base import BaseMethods
 
 _chat_info_adapter: TypeAdapter[ChatInfoResponse] = TypeAdapter(ChatInfoResponse)
@@ -29,13 +30,6 @@ _chat_info_adapter: TypeAdapter[ChatInfoResponse] = TypeAdapter(ChatInfoResponse
 def _serialize_members(members: list[str]) -> str:
     """Convert a list of user IDs to the API-expected JSON format."""
     return json.dumps([{"sn": uid} for uid in members])
-
-
-def _bool_str(value: bool | None) -> str | None:
-    """Convert a Python bool to ``"true"``/``"false"`` string."""
-    if value is None:
-        return None
-    return "true" if value else "false"
 
 
 def _serialize_actions(actions: list[ChatAction] | list[str]) -> str:
