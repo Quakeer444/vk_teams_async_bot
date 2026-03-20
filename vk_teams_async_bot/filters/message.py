@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from typing import ClassVar
 
 from ..types.event import BaseEvent, NewMessageEvent
 from .base import FilterBase
@@ -55,7 +56,7 @@ class CommandFilter(FilterBase):
     CommandFilter("start") matches "/start" and "/start arg1 arg2".
     """
 
-    COMMAND_PREFIXES = "/"
+    COMMAND_PREFIXES: ClassVar[tuple[str, ...]] = ("/",)
 
     def __init__(self, command: str) -> None:
         self.command = command.lstrip("/")
@@ -66,12 +67,11 @@ class CommandFilter(FilterBase):
         if not event.text:
             return False
         text = event.text.strip()
-        if not any(text.startswith(p) for p in self.COMMAND_PREFIXES):
-            return False
-        # Extract command: first word without prefix
-        first_word = text.split()[0]
-        extracted_command = first_word[1:]  # strip the "/" prefix
-        return extracted_command == self.command
+        for p in self.COMMAND_PREFIXES:
+            if text.startswith(p):
+                first_word = text.split()[0]
+                return first_word[len(p):] == self.command
+        return False
 
     def __repr__(self) -> str:
         return f"CommandFilter({self.command!r})"

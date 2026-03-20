@@ -455,6 +455,17 @@ class TestCommandFilter:
         assert f(_new_message("/start")) is True
         assert f.command == "start"
 
+    def test_command_prefixes_is_tuple(self):
+        assert isinstance(CommandFilter.COMMAND_PREFIXES, tuple)
+
+    def test_custom_prefix_subclass(self):
+        class BangCommandFilter(CommandFilter):
+            COMMAND_PREFIXES = ("/", "!")
+
+        f = BangCommandFilter("start")
+        event = _new_message("!start")
+        assert f(event) is True
+
 
 # -- TextFilter --
 
