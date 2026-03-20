@@ -55,6 +55,10 @@ class InlineKeyboardMarkup:
     def row(self, *buttons: KeyboardButton) -> None:
         self.keyboard.append(list(buttons))
 
+    def __repr__(self) -> str:
+        total = sum(len(row) for row in self.keyboard)
+        return f"InlineKeyboardMarkup(buttons={total}, rows={len(self.keyboard)})"
+
     def to_json(self) -> str:
         return json.dumps([[btn.to_dict() for btn in row] for row in self.keyboard])
 

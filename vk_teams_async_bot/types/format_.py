@@ -21,6 +21,9 @@ class Style:
         entry.update(kwargs)
         self.ranges.append(entry)
 
+    def __repr__(self) -> str:
+        return f"Style(ranges={len(self.ranges)})"
+
     def to_list(self) -> list[dict[str, int | str]]:
         return list(self.ranges)
 
@@ -45,6 +48,10 @@ class Format:
             self.styles[style] = Style()
         self.styles[style].add(offset, length, **kwargs)
         return self
+
+    def __repr__(self) -> str:
+        names = ", ".join(s.value for s in self.styles)
+        return f"Format(styles=[{names}])"
 
     def to_dict(self) -> dict[str, list[dict[str, int | str]]]:
         return {
