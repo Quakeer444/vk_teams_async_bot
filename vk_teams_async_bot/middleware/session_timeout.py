@@ -40,6 +40,7 @@ class SessionTimeoutMiddleware(BaseMiddleware):
         self._check_interval = check_interval
         self._on_timeout = on_timeout
         self._timestamps: dict[StorageKey, datetime] = {}
+        self._lock = asyncio.Lock()
         self._task: asyncio.Task[None] | None = None
 
     async def __call__(
@@ -53,7 +54,8 @@ class SessionTimeoutMiddleware(BaseMiddleware):
         # Update timestamp for the current user if FSM context is available
         fsm_context: FSMContext | None = data.get("fsm_context")
         if fsm_context is not None:
-            self._timestamps[fsm_context._key] = datetime.now()
+            async with self._lock:
+                self._timestamps[fsm_context._key] = datetime.now()
 
         return await handler(event, data)
 
@@ -76,19 +78,20 @@ class SessionTimeoutMiddleware(BaseMiddleware):
 
     async def _cleanup_expired(self) -> None:
         now = datetime.now()
-        expired: list[StorageKey] = []
+        timeout_delta = timedelta(seconds=self._timeout)
 
-        for key, ts in list(self._timestamps.items()):
-            if now - ts > timedelta(seconds=self._timeout):
-                expired.append(key)
+        async with self._lock:
+            expired = [
+                k for k, ts in self._timestamps.items() if now - ts > timeout_delta
+            ]
 
         for key in expired:
-            current_ts = self._timestamps.get(key)
-            if current_ts is None or now - current_ts <= timedelta(
-                seconds=self._timeout
-            ):
-                continue
-            self._timestamps.pop(key, None)
+            async with self._lock:
+                current_ts = self._timestamps.get(key)
+                if current_ts is None or now - current_ts <= timeout_delta:
+                    continue
+                self._timestamps.pop(key, None)
+
             state = await self._storage.get_state(key)
             if state is not None:
                 await self._storage.clear(key)
