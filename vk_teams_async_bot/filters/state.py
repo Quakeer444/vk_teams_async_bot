@@ -44,6 +44,10 @@ class StateFilter(FilterBase):
         """Override base class to use async storage lookup."""
         return await self.check(event)
 
+    def set_storage(self, storage: BaseStorage) -> None:
+        """Set the storage backend for state lookups."""
+        self._storage = storage
+
     def __call__(self, event: BaseEvent) -> bool:
         raise NotImplementedError(
             "StateFilter requires async check(). "

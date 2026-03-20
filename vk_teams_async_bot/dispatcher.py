@@ -68,133 +68,54 @@ class Dispatcher:
 
     # -- Decorator shortcuts ---------------------------------------------------
 
-    def message(
+    def _register(
         self,
-        *filters: FilterBase,
+        handler_cls: type[BaseHandler],
+        filters: tuple[FilterBase, ...],
     ) -> Callable:
+        """Create a decorator that registers a handler of *handler_cls*."""
+
+        def decorator(callback: Callable) -> Callable:
+            handler = handler_cls(
+                callback=callback,
+                filters=filters if filters else None,
+            )
+            self.add_handler(handler)
+            return callback
+
+        return decorator
+
+    def message(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``MessageHandler``."""
+        return self._register(MessageHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = MessageHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def edited_message(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def edited_message(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``EditedMessageHandler``."""
+        return self._register(EditedMessageHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = EditedMessageHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def deleted_message(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def deleted_message(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``DeletedMessageHandler``."""
+        return self._register(DeletedMessageHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = DeletedMessageHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def pinned_message(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def pinned_message(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``PinnedMessageHandler``."""
+        return self._register(PinnedMessageHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = PinnedMessageHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def unpinned_message(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def unpinned_message(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``UnpinnedMessageHandler``."""
+        return self._register(UnpinnedMessageHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = UnpinnedMessageHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def new_chat_members(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def new_chat_members(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``NewChatMembersHandler``."""
+        return self._register(NewChatMembersHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = NewChatMembersHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def left_chat_members(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def left_chat_members(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``LeftChatMembersHandler``."""
+        return self._register(LeftChatMembersHandler, filters)
 
-        def decorator(callback: Callable) -> Callable:
-            handler = LeftChatMembersHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
-
-    def callback_query(
-        self,
-        *filters: FilterBase,
-    ) -> Callable:
+    def callback_query(self, *filters: FilterBase) -> Callable:
         """Decorator shortcut for ``CallbackQueryHandler``."""
-
-        def decorator(callback: Callable) -> Callable:
-            handler = CallbackQueryHandler(
-                callback=callback,
-                filters=filters if filters else None,
-            )
-            self.add_handler(handler)
-            return callback
-
-        return decorator
+        return self._register(CallbackQueryHandler, filters)
 
     def command(
         self,
@@ -321,4 +242,4 @@ class Dispatcher:
         for f in filters:
             for leaf in f.iter_filters():
                 if isinstance(leaf, StateFilter) and leaf._storage is None:
-                    leaf._storage = self._storage
+                    leaf.set_storage(self._storage)
