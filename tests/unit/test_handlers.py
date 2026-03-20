@@ -438,6 +438,24 @@ class TestHandlerDI:
         assert deps["session"] is get_session
 
 
+class TestSignatureCaching:
+    @pytest.mark.asyncio
+    async def test_signature_cached_across_calls(self):
+        """inspect.signature should be called once and cached."""
+        import inspect
+        from unittest.mock import patch
+
+        async def callback(event, bot):
+            pass
+
+        handler = MessageHandler(callback=callback, filters=None)
+        mock_bot = _MockBot(depends=[])
+        with patch("inspect.signature", wraps=inspect.signature) as mock_sig:
+            await handler.check_signature(mock_bot)
+            await handler.check_signature(mock_bot)
+            assert mock_sig.call_count == 1  # Should be cached after first call
+
+
 class _MockBot:
     """Minimal bot mock with depends list for DI testing."""
 

@@ -28,6 +28,13 @@ class BaseHandler:
     ) -> None:
         self.callback = callback
         self.filters = filters
+        self._cached_sig: inspect.Signature | None = None
+
+    def _get_signature(self) -> inspect.Signature:
+        """Return cached inspect.signature for the callback."""
+        if self._cached_sig is None:
+            self._cached_sig = inspect.signature(self.callback)
+        return self._cached_sig
 
     def check(self, event: BaseEvent) -> bool:
         """Check if this handler should handle the event.
@@ -73,7 +80,7 @@ class BaseHandler:
         For each parameter in the callback signature, checks if its type
         annotation matches any entry in bot.depends. Supports Annotated types.
         """
-        signature = inspect.signature(self.callback)
+        signature = self._get_signature()
         depends: dict[str, Any] = {}
 
         for key, value in signature.parameters.items():
@@ -132,7 +139,7 @@ class BaseHandler:
         ``extra_kwargs`` (e.g. fsm_context) are matched by parameter name
         against the callback signature before DI lookup.
         """
-        signature = inspect.signature(self.callback)
+        signature = self._get_signature()
         handle_kwargs = await self.check_signature(bot)
 
         objects: dict[str, Any] = {}
