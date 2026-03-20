@@ -47,7 +47,8 @@ class NestedMessage(VKTeamsFlexModel):
             and isinstance(data["payload"], dict)
         ):
             payload = data["payload"]
-            return {**data, **payload}
+            merged = {k: v for k, v in data.items() if k != "payload"}
+            return {**payload, **merged}
         return data
 
 

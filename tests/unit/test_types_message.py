@@ -47,6 +47,20 @@ class TestNestedMessage:
         assert msg.format_ == {"bold": [[0, 5]]}
         assert msg.timestamp == 1700000000
 
+    def test_flatten_preserves_top_level_keys(self) -> None:
+        data = {
+            "from": {"userId": "outer_user"},
+            "msgId": "outer_id",
+            "payload": {
+                "from": {"userId": "inner_user"},
+                "msgId": "inner_id",
+                "text": "hello",
+            },
+        }
+        msg = NestedMessage.model_validate(data)
+        assert msg.from_.user_id == "outer_user"  # Top-level should win
+        assert msg.msg_id == "outer_id"
+
     def test_minimal_fields(self) -> None:
         raw = {"from": _user_raw(), "msgId": "msg-200"}
         msg = NestedMessage.model_validate(raw)
