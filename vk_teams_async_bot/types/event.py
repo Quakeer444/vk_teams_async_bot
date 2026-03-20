@@ -154,6 +154,10 @@ Event = Annotated[
 
 _event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
 
+_KNOWN_EVENT_TYPES: frozenset[str] = frozenset(
+    member.value for member in EventType
+)
+
 
 def _flatten_raw_event(raw: dict) -> dict:
     """Flatten {eventId, type, payload: {...}} into a single dict."""
@@ -178,8 +182,7 @@ def parse_event(raw: dict) -> BaseEvent | RawUnknownEvent:
     event_type = raw.get("type")
 
     # Check if event type is known
-    known_types = {member.value for member in EventType}
-    if event_type not in known_types:
+    if event_type not in _KNOWN_EVENT_TYPES:
         logger.warning("Unknown event type: %s", event_type)
         return RawUnknownEvent(
             eventId=raw.get("eventId", 0),

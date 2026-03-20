@@ -297,3 +297,11 @@ class TestMalformedEvent:
             parse_event(raw)
         assert exc_info.value.raw_data is not None
         assert exc_info.value.raw_data["type"] == "editedMessage"
+
+
+class TestKnownEventTypes:
+    def test_known_event_types_is_module_frozenset(self) -> None:
+        from vk_teams_async_bot.types.event import _KNOWN_EVENT_TYPES, EventType
+
+        assert isinstance(_KNOWN_EVENT_TYPES, frozenset)
+        assert _KNOWN_EVENT_TYPES == {m.value for m in EventType}
