@@ -446,6 +446,70 @@ class TestSessionDownload:
                 await session.download(DOWNLOAD_URL)
 
     @pytest.mark.asyncio
+    async def test_200_ok_false_ratelimit_raises_rate_limit_error(
+        self, no_retry_policy: RetryPolicy
+    ) -> None:
+        """HTTP 200 with ok=false and description=Ratelimit raises RateLimitError."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=no_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.get(SELF_GET, payload={"ok": False, "description": "Ratelimit"})
+                with pytest.raises(RateLimitError) as exc_info:
+                    await session.get("/self/get")
+
+                assert exc_info.value.status_code == 200
+                assert exc_info.value.description == "Ratelimit"
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retries_on_get(
+        self, fast_retry_policy: RetryPolicy
+    ) -> None:
+        """Rate limit is retried on GET requests."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.get(SELF_GET, payload={"ok": False, "description": "Ratelimit"})
+                m.get(SELF_GET, payload={"ok": True, "data": "ok"})
+
+                result = await session.get("/self/get")
+            assert result == {"ok": True, "data": "ok"}
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_retries_on_post(
+        self, fast_retry_policy: RetryPolicy
+    ) -> None:
+        """Rate limit is retried on POST (server did not execute the request)."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.post(SEND_TEXT, payload={"ok": False, "description": "Ratelimit"})
+                m.post(SEND_TEXT, payload={"ok": True, "msgId": "abc"})
+
+                result = await session.post("/messages/sendText", chatId="c1", text="hi")
+            assert result == {"ok": True, "msgId": "abc"}
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_exhaustion_raises(
+        self, fast_retry_policy: RetryPolicy
+    ) -> None:
+        """When all rate limit retries are exhausted, RateLimitError is raised."""
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                for _ in range(3):
+                    m.post(
+                        SEND_TEXT,
+                        payload={"ok": False, "description": "Ratelimit"},
+                    )
+
+                with pytest.raises(RateLimitError):
+                    await session.post("/messages/sendText", chatId="c1", text="hi")
+
+    @pytest.mark.asyncio
     async def test_download_rejects_oversized_response(
         self, no_retry_policy: RetryPolicy
     ) -> None:

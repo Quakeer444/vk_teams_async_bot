@@ -26,6 +26,17 @@ logger = logging.getLogger(__name__)
 _RETRIABLE_ERRORS = (ServerError, NetworkError, TimeoutError)
 
 
+def _parse_retry_after(response: aiohttp.ClientResponse) -> float | None:
+    """Extract ``Retry-After`` header value as float, or None if absent."""
+    raw = response.headers.get("Retry-After")
+    if raw is None:
+        return None
+    try:
+        return float(raw)
+    except (ValueError, TypeError):
+        return None
+
+
 class VKTeamsSession:
     """HTTP client for VK Teams Bot API.
 
@@ -304,7 +315,8 @@ class VKTeamsSession:
         # 429 -- rate limited
         if status == 429:
             description = body.get("description", "Rate limited (HTTP 429)")
-            raise RateLimitError(status, description)
+            retry_after = _parse_retry_after(response)
+            raise RateLimitError(status, description, retry_after=retry_after)
 
         # 4xx -- client / API error
         if status >= 400:
@@ -315,6 +327,9 @@ class VKTeamsSession:
         ok_flag = body.get("ok", True)
         if not ok_flag:
             description = body.get("description", "Unknown API error")
+            if description == "Ratelimit":
+                retry_after = _parse_retry_after(response)
+                raise RateLimitError(status, description, retry_after=retry_after)
             raise APIError(status, description)
 
         return body
@@ -329,21 +344,42 @@ class VKTeamsSession:
     ) -> dict:
         """Wrap ``_do_request`` with retry logic driven by RetryPolicy.
 
-        Only retriable errors (ServerError, NetworkError, TimeoutError)
-        trigger a retry.  Non-idempotent requests (POST by default) are
-        not retried to prevent duplicate side effects.
+        RateLimitError is always retried regardless of idempotency -- the
+        server has not executed the request, so it is safe to repeat.
+
+        Other retriable errors (ServerError, NetworkError, TimeoutError)
+        are only retried for idempotent requests.
         """
         if idempotent is None:
             idempotent = method.upper() != "POST"
         policy = self._retry_policy
-        max_attempts = (1 + policy.max_retries) if idempotent else 1
         last_error: Exception | None = None
 
-        for attempt in range(max_attempts):
+        for attempt in range(1 + policy.max_retries):
             try:
                 return await self._do_request(method, endpoint, **kwargs)
+            except RateLimitError as exc:
+                last_error = exc
+                if attempt < policy.max_retries:
+                    if exc.retry_after is not None:
+                        delay = exc.retry_after
+                        await asyncio.sleep(delay)
+                    else:
+                        delay = await exponential_backoff_with_jitter(policy, attempt)
+                    logger.warning(
+                        "Rate limited, retry %d/%d after %.2fs for %s %s",
+                        attempt + 1,
+                        policy.max_retries,
+                        delay,
+                        method,
+                        endpoint,
+                    )
+                    continue
+                break
             except _RETRIABLE_ERRORS as exc:
                 last_error = exc
+                if not idempotent:
+                    raise
                 if attempt < policy.max_retries:
                     delay = await exponential_backoff_with_jitter(policy, attempt)
                     logger.warning(
@@ -356,7 +392,6 @@ class VKTeamsSession:
                         exc,
                     )
                     continue
-                # Exhausted retries -- fall through to raise
                 break
 
         if last_error is not None:

@@ -11,13 +11,14 @@ except ImportError:
 
 from vk_teams_async_bot.client.retry import RetryPolicy
 from vk_teams_async_bot.client.session import VKTeamsSession
-from vk_teams_async_bot.errors import APIError, ServerError
+from vk_teams_async_bot.errors import APIError, RateLimitError, ServerError
 
 BASE_URL = "https://api.test.example.com"
 BASE_PATH = "/bot/v1"
 TOKEN = "test-token"
 
 SELF_GET = re.compile(r".*/bot/v1/self/get")
+SEND_TEXT = re.compile(r".*/bot/v1/messages/sendText")
 
 
 def _make_session(max_retries: int = 2) -> VKTeamsSession:
@@ -86,3 +87,25 @@ class TestOkFalseHandling:
                 with pytest.raises(APIError) as exc_info:
                     await session.get("/self/get")
                 assert exc_info.value.status_code == 404
+
+
+class TestRateLimitRetry:
+    @pytest.mark.asyncio
+    async def test_rate_limit_200_retries_and_succeeds(self):
+        """HTTP 200 rate limit response retries and succeeds."""
+        async with _make_session(max_retries=2) as session:
+            with aioresponses() as m:
+                m.get(SELF_GET, payload={"ok": False, "description": "Ratelimit"})
+                m.get(SELF_GET, payload={"ok": True, "userId": "bot1"})
+                result = await session.get("/self/get")
+                assert result["ok"] is True
+
+    @pytest.mark.asyncio
+    async def test_rate_limit_post_retries_and_succeeds(self):
+        """POST rate limit is retried (server did not execute the request)."""
+        async with _make_session(max_retries=2) as session:
+            with aioresponses() as m:
+                m.post(SEND_TEXT, payload={"ok": False, "description": "Ratelimit"})
+                m.post(SEND_TEXT, payload={"ok": True, "msgId": "abc"})
+                result = await session.post("/messages/sendText", chatId="c1", text="hi")
+                assert result == {"ok": True, "msgId": "abc"}

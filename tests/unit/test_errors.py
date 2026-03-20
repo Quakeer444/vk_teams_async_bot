@@ -45,6 +45,26 @@ class TestErrorHierarchy:
         assert isinstance(PollingError(), VKTeamsError)
 
 
+class TestRateLimitError:
+    def test_retry_after_default_none(self):
+        err = RateLimitError(429, "Too many requests")
+        assert err.retry_after is None
+
+    def test_retry_after_with_value(self):
+        err = RateLimitError(429, "Too many requests", retry_after=2.5)
+        assert err.retry_after == 2.5
+
+    def test_is_api_error(self):
+        err = RateLimitError(200, "Ratelimit")
+        assert isinstance(err, APIError)
+        assert isinstance(err, VKTeamsError)
+
+    def test_attributes_inherited(self):
+        err = RateLimitError(200, "Ratelimit", retry_after=1.0)
+        assert err.status_code == 200
+        assert err.description == "Ratelimit"
+
+
 class TestAPIError:
     def test_attributes(self):
         err = APIError(404, "Not found")

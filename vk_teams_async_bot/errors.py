@@ -27,7 +27,11 @@ class TimeoutError(VKTeamsError, builtins.TimeoutError):
 
 
 class RateLimitError(APIError):
-    pass
+    def __init__(
+        self, status_code: int, description: str, retry_after: float | None = None
+    ) -> None:
+        self.retry_after = retry_after
+        super().__init__(status_code, description)
 
 
 class SessionError(VKTeamsError):
