@@ -4,6 +4,7 @@
 # The DI system relies on annotations being actual function objects,
 # not lazy strings. See examples/depends.py for the usage pattern.
 
+import asyncio
 from functools import partial
 from typing import Annotated
 
@@ -418,6 +419,19 @@ class TestHandlerDI:
         assert calls == ["default"]
 
     @pytest.mark.asyncio
+    async def test_async_generator_cleanup_timeout(self):
+        """DI cleanup should not hang if generator blocks during teardown."""
+        calls: list = []
+        bot = _MockBot(depends=[_hanging_gen_dep])
+        h = BaseHandler(callback=_cb_with_hanging_dep(calls))
+        # Should complete without hanging (timeout kicks in)
+        await asyncio.wait_for(
+            h.handle(_new_message(), bot),
+            timeout=10.0,
+        )
+        assert calls == ["value"]
+
+    @pytest.mark.asyncio
     async def test_callback_with_annotated_dependency(self):
         """Verify Annotated[Type, provider] DI pattern works."""
 
@@ -509,5 +523,22 @@ def _cb_with_gen_dep(calls: list):
 
     async def cb(event, bot, res: _async_gen_dep):  # type: ignore[valid-type]
         calls.append(res)
+
+    return cb
+
+
+async def _hanging_gen_dep():
+    """Async generator that hangs during cleanup (after yield)."""
+    try:
+        yield "value"
+    finally:
+        await asyncio.sleep(999)
+
+
+def _cb_with_hanging_dep(calls: list):
+    """Build a callback that uses _hanging_gen_dep as annotation."""
+
+    async def cb(event, bot, val: _hanging_gen_dep):  # type: ignore[valid-type]
+        calls.append(val)
 
     return cb

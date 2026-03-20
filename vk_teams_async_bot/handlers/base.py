@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import asyncio
 import inspect
+import logging
 import typing
 from typing import Any, Callable, Sequence
 
@@ -10,7 +12,10 @@ from ..filters.base import FilterBase
 from ..filters.state import StateFilter
 from ..types.event import BaseEvent
 
+logger = logging.getLogger(__name__)
+
 _SENTINEL = object()
+_DI_CLEANUP_TIMEOUT: float = 5.0
 
 
 class BaseHandler:
@@ -172,4 +177,10 @@ class BaseHandler:
             await self.callback(event, bot, **objects)
         finally:
             for gen in async_generators:
-                await gen.aclose()
+                try:
+                    await asyncio.wait_for(gen.aclose(), timeout=_DI_CLEANUP_TIMEOUT)
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        "DI generator cleanup timed out after %.1fs",
+                        _DI_CLEANUP_TIMEOUT,
+                    )
