@@ -396,6 +396,27 @@ class TestSessionDownload:
                     await session.post("/messages/sendText", chatId="c1", text="hi")
 
     @pytest.mark.asyncio
+    async def test_post_with_idempotent_retries_on_server_error(
+        self, fast_retry_policy: RetryPolicy
+    ) -> None:
+        """POST with idempotent=True should retry on 500."""
+        SEND_FILE = re.compile(r".*/bot/v1/messages/sendFile")
+        async with VKTeamsSession(
+            BASE_URL, BASE_PATH, TOKEN, retry_policy=fast_retry_policy
+        ) as session:
+            with aioresponses() as m:
+                m.post(
+                    SEND_FILE,
+                    status=500,
+                    payload={"ok": False, "description": "err"},
+                )
+                m.post(SEND_FILE, payload={"ok": True})
+                result = await session.post(
+                    "/messages/sendFile", idempotent=True
+                )
+                assert result == {"ok": True}
+
+    @pytest.mark.asyncio
     async def test_ensure_session_concurrent_calls(self) -> None:
         """Multiple concurrent _ensure_session calls create only one session."""
         session = VKTeamsSession(BASE_URL, BASE_PATH, TOKEN)

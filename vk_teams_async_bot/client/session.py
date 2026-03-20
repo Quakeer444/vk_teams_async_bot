@@ -97,17 +97,23 @@ class VKTeamsSession:
         self,
         endpoint: str,
         data: FormData | dict | None = None,
+        idempotent: bool = False,
         **params: Any,
     ) -> dict:
         """Execute a POST request against the Bot API.
 
         The bot token is injected into query params.  ``data`` is sent
         as the request body (form-data or JSON-serialisable dict).
+
+        When ``idempotent`` is True, the request will be retried on
+        server errors just like GET requests.  Use this for operations
+        that are safe to repeat (e.g. file uploads with deduplication).
         """
         clean_params = self._build_params(params)
         return await self._request_with_retry(
             "POST",
             endpoint,
+            idempotent=idempotent,
             params=clean_params,
             data=data,
         )
