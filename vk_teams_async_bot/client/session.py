@@ -17,6 +17,7 @@ from vk_teams_async_bot.errors import (
     TimeoutError,
 )
 
+from .log_filter import TokenSanitizingFilter
 from .retry import RetryPolicy, exponential_backoff_with_jitter
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,11 @@ class VKTeamsSession:
         self._session: ClientSession | None = None
         self._download_session: ClientSession | None = None
         self._session_lock = asyncio.Lock()
+        # Remove any existing TokenSanitizingFilter before adding new one
+        for f in logger.filters[:]:
+            if isinstance(f, TokenSanitizingFilter):
+                logger.removeFilter(f)
+        logger.addFilter(TokenSanitizingFilter(bot_token))
 
     # -- Context manager protocol ------------------------------------------
 
@@ -243,7 +249,7 @@ class VKTeamsSession:
                     timeout=aiohttp.ClientTimeout(total=self._timeout),
                     connector=self._make_connector(),
                 )
-                logger.debug("Session created: %s", self._session)
+                logger.debug("Session created for %s%s", self._base_url, self._base_path)
             return self._session
 
     async def _do_request(
