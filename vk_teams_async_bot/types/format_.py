@@ -22,7 +22,7 @@ class Style:
         self.ranges.append(entry)
 
     def to_list(self) -> list[dict[str, int | str]]:
-        return self.ranges
+        return list(self.ranges)
 
     def to_json(self) -> str:
         return json.dumps(self.ranges)
