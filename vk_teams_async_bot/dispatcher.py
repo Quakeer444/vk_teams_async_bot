@@ -230,7 +230,7 @@ class Dispatcher:
 
     def _inject_storage(self, handler: BaseHandler) -> None:
         """Ensure StateFilter instances have a reference to the storage."""
-        if not handler.filters:
+        if self._storage is None or not handler.filters:
             return
 
         filters: Sequence[FilterBase]
