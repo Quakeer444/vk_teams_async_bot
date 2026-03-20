@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import os
 import signal
+import sys
 from typing import Any, Awaitable, Callable, Sequence
 
 from .client.retry import RetryPolicy
@@ -62,6 +62,9 @@ class Bot(
         max_concurrent_handlers: int = 100,
         max_download_size: int = 100 * 1024 * 1024,
     ) -> None:
+        if not bot_token or not bot_token.strip():
+            raise ValueError("bot_token must be a non-empty string")
+
         self._session = VKTeamsSession(
             base_url=url,
             base_path=base_path,
@@ -194,7 +197,7 @@ class Bot(
         """Signal handler: first call stops polling gracefully, second forces exit."""
         if not self._running:
             logger.info("Forced shutdown")
-            os._exit(1)  # noqa: SLF001 -- hard kill on second Ctrl+C
+            sys.exit(1)
             return
         logger.info("Received shutdown signal, press Ctrl+C again to force exit")
         self._running = False
