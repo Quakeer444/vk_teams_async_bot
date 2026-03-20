@@ -15,9 +15,9 @@ class ChatTypeFilter(FilterBase):
 
     def __init__(self, chat_types: ChatType | list[ChatType]) -> None:
         if isinstance(chat_types, list):
-            self.types = chat_types
+            self.types = frozenset(chat_types)
         else:
-            self.types = [chat_types]
+            self.types = frozenset([chat_types])
 
     def __call__(self, event: BaseEvent) -> bool:
         chat = getattr(event, "chat", None)
