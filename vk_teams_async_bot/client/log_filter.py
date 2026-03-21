@@ -19,16 +19,20 @@ class TokenSanitizingFilter(logging.Filter):
         if record.args:
             if isinstance(record.args, tuple):
                 record.args = tuple(
-                    str(a).replace(self._token, self._masked)
-                    if isinstance(a, str) and self._token in a
-                    else a
+                    (
+                        str(a).replace(self._token, self._masked)
+                        if isinstance(a, str) and self._token in a
+                        else a
+                    )
                     for a in record.args
                 )
             elif isinstance(record.args, dict):
                 record.args = {
-                    k: str(v).replace(self._token, self._masked)
-                    if isinstance(v, str) and self._token in v
-                    else v
+                    k: (
+                        str(v).replace(self._token, self._masked)
+                        if isinstance(v, str) and self._token in v
+                        else v
+                    )
                     for k, v in record.args.items()
                 }
         return True

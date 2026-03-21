@@ -14,7 +14,6 @@ from vk_teams_async_bot.types.event import (
 )
 from vk_teams_async_bot.utils import extract_chat_user
 
-
 # -- Helpers --
 
 

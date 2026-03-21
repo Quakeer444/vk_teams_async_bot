@@ -15,6 +15,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
+from vk_teams_async_bot.methods._helpers import bool_str
 from vk_teams_async_bot.methods.chats import ChatMethods
 from vk_teams_async_bot.methods.events import EventMethods
 from vk_teams_async_bot.methods.files import FileMethods
@@ -44,9 +45,7 @@ from vk_teams_async_bot.types.response import (
     PartialSuccessResponse,
     UsersResponse,
 )
-from vk_teams_async_bot.methods._helpers import bool_str
 from vk_teams_async_bot.types.user import BotInfo
-
 
 # ===================================================================
 # bool_str helper

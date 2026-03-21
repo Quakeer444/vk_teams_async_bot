@@ -104,9 +104,7 @@ class TestRedisStorageUpdateData:
         assert result == {"name": "Alice", "phone": "123"}
 
     @pytest.mark.asyncio
-    async def test_update_data_overwrites_key(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_update_data_overwrites_key(self, storage: RedisStorage) -> None:
         await storage.set_data(KEY_A, {"name": "Alice"})
         result = await storage.update_data(KEY_A, data={"name": "Bob"})
         assert result == {"name": "Bob"}
@@ -122,9 +120,7 @@ class TestRedisStorageUpdateData:
 
 class TestRedisStorageClear:
     @pytest.mark.asyncio
-    async def test_clear_removes_state_and_data(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_clear_removes_state_and_data(self, storage: RedisStorage) -> None:
         await storage.set_state(KEY_A, "active")
         await storage.set_data(KEY_A, {"foo": "bar"})
         await storage.clear(KEY_A)
@@ -132,9 +128,7 @@ class TestRedisStorageClear:
         assert await storage.get_data(KEY_A) == {}
 
     @pytest.mark.asyncio
-    async def test_clear_unknown_key_is_noop(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_clear_unknown_key_is_noop(self, storage: RedisStorage) -> None:
         await storage.clear(("nonexistent", "key"))
 
 
@@ -142,9 +136,7 @@ class TestRedisStorageIsolation:
     """Same user in different chats must have independent state."""
 
     @pytest.mark.asyncio
-    async def test_same_user_different_chats(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_same_user_different_chats(self, storage: RedisStorage) -> None:
         await storage.set_state(KEY_A, "state_in_chat_1")
         await storage.set_state(KEY_B, "state_in_chat_2")
         await storage.set_data(KEY_A, {"from": "chat_1"})
@@ -166,9 +158,7 @@ class TestRedisStorageIsolation:
         assert await storage.get_state(KEY_B) == "active"
 
     @pytest.mark.asyncio
-    async def test_different_users_same_chat(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_different_users_same_chat(self, storage: RedisStorage) -> None:
         await storage.set_state(KEY_A, "user1_state")
         await storage.set_state(KEY_C, "user2_state")
         assert await storage.get_state(KEY_A) == "user1_state"
@@ -310,27 +300,21 @@ class TestRedisStorageKeyPrefix:
 
 class TestRedisStorageSerialization:
     @pytest.mark.asyncio
-    async def test_nested_dict_survives_roundtrip(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_nested_dict_survives_roundtrip(self, storage: RedisStorage) -> None:
         data = {"user": {"name": "Alice", "settings": {"theme": "dark"}}}
         await storage.set_data(KEY_A, data)
         result = await storage.get_data(KEY_A)
         assert result == data
 
     @pytest.mark.asyncio
-    async def test_list_values_survive_roundtrip(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_list_values_survive_roundtrip(self, storage: RedisStorage) -> None:
         data = {"tags": ["python", "bot", "async"]}
         await storage.set_data(KEY_A, data)
         result = await storage.get_data(KEY_A)
         assert result == data
 
     @pytest.mark.asyncio
-    async def test_unicode_survives_roundtrip(
-        self, storage: RedisStorage
-    ) -> None:
+    async def test_unicode_survives_roundtrip(self, storage: RedisStorage) -> None:
         data = {"name": "Tester McTestface"}
         await storage.set_data(KEY_A, data)
         result = await storage.get_data(KEY_A)

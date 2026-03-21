@@ -107,5 +107,7 @@ class TestRateLimitRetry:
             with aioresponses() as m:
                 m.post(SEND_TEXT, payload={"ok": False, "description": "Ratelimit"})
                 m.post(SEND_TEXT, payload={"ok": True, "msgId": "abc"})
-                result = await session.post("/messages/sendText", chatId="c1", text="hi")
+                result = await session.post(
+                    "/messages/sendText", chatId="c1", text="hi"
+                )
                 assert result == {"ok": True, "msgId": "abc"}

@@ -1,4 +1,5 @@
 """Shared helpers for API method modules."""
+
 from __future__ import annotations
 
 

@@ -411,9 +411,7 @@ class TestSessionDownload:
                     payload={"ok": False, "description": "err"},
                 )
                 m.post(SEND_FILE, payload={"ok": True})
-                result = await session.post(
-                    "/messages/sendFile", idempotent=True
-                )
+                result = await session.post("/messages/sendFile", idempotent=True)
                 assert result == {"ok": True}
 
     @pytest.mark.asyncio
@@ -488,7 +486,9 @@ class TestSessionDownload:
                 m.post(SEND_TEXT, payload={"ok": False, "description": "Ratelimit"})
                 m.post(SEND_TEXT, payload={"ok": True, "msgId": "abc"})
 
-                result = await session.post("/messages/sendText", chatId="c1", text="hi")
+                result = await session.post(
+                    "/messages/sendText", chatId="c1", text="hi"
+                )
             assert result == {"ok": True, "msgId": "abc"}
 
     @pytest.mark.asyncio

@@ -70,7 +70,7 @@ class CommandFilter(FilterBase):
         for p in self.COMMAND_PREFIXES:
             if text.startswith(p):
                 first_word = text.split()[0]
-                return first_word[len(p):] == self.command
+                return first_word[len(p) :] == self.command
         return False
 
     def __repr__(self) -> str:

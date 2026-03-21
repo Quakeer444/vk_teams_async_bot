@@ -34,13 +34,9 @@ class RedisStorage(BaseStorage):
         state_ttl: int | None = None,
     ) -> None:
         if redis is not None and redis_url is not None:
-            raise ValueError(
-                "Provide either 'redis' or 'redis_url', not both."
-            )
+            raise ValueError("Provide either 'redis' or 'redis_url', not both.")
         if redis is None and redis_url is None:
-            raise ValueError(
-                "Provide either 'redis' instance or 'redis_url'."
-            )
+            raise ValueError("Provide either 'redis' instance or 'redis_url'.")
 
         if redis_url is not None:
             self._redis: Redis = Redis.from_url(redis_url)  # type: ignore[type-arg]

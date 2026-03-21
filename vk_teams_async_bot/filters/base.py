@@ -16,8 +16,7 @@ class FilterBase(ABC):
     """
 
     @abstractmethod
-    def __call__(self, event: BaseEvent) -> bool:
-        ...
+    def __call__(self, event: BaseEvent) -> bool: ...
 
     async def check_async(self, event: BaseEvent) -> bool:
         """Async check. Default delegates to synchronous __call__."""

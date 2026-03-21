@@ -266,7 +266,9 @@ class VKTeamsSession:
                     timeout=aiohttp.ClientTimeout(total=self._timeout),
                     connector=self._make_connector(),
                 )
-                logger.debug("Session created for %s%s", self._base_url, self._base_path)
+                logger.debug(
+                    "Session created for %s%s", self._base_url, self._base_path
+                )
             return self._session
 
     async def _do_request(

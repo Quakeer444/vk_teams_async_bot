@@ -154,9 +154,7 @@ Event = Annotated[
 
 _event_adapter: TypeAdapter[Event] = TypeAdapter(Event)
 
-_KNOWN_EVENT_TYPES: frozenset[str] = frozenset(
-    member.value for member in EventType
-)
+_KNOWN_EVENT_TYPES: frozenset[str] = frozenset(member.value for member in EventType)
 
 
 def _flatten_raw_event(raw: dict) -> dict:
