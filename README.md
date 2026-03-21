@@ -29,7 +29,8 @@ pip install vk-teams-async-bot
 ## Быстрый старт
 
 1. Получите токен бота у [Метабота](https://teams.vk.com/profile/70001).
-2. Создайте файл `bot.py`:
+2. Узнайте адрес сервера. Для on-premise адрес сервера уникален для каждой инсталляции - отправьте Метаботу команду `/start` и найдите его в настройках вашего сервера. Пример: `https://myteam.mail.ru`.
+3. Создайте файл `bot.py`:
 
 ```python
 import asyncio
@@ -37,7 +38,10 @@ import os
 
 from vk_teams_async_bot import Bot, Dispatcher, NewMessageEvent
 
-bot = Bot(bot_token=os.environ["BOT_TOKEN"])
+bot = Bot(
+    bot_token=os.environ["BOT_TOKEN"],
+    url=os.environ.get("BOT_API_URL"),
+)
 dp = Dispatcher()
 
 
@@ -55,14 +59,13 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-3. Запустите:
+4. Запустите:
 
 ```bash
 export BOT_TOKEN="ваш_токен"
+export BOT_API_URL="https://myteam.mail.ru"  # для on-premise
 python bot.py
 ```
-
-On-premise: передайте параметр `url=` в `Bot(...)`, если используете собственный API-эндпоинт.
 
 ## Использование
 
@@ -500,7 +503,7 @@ bot = Bot(
 | Параметр | По умолчанию | Описание |
 |----------|--------------|----------|
 | `bot_token` | -- | Токен бота (обязательный) |
-| `url` | `https://api.internal.myteam.mail.ru` | Базовый URL API |
+| `url` | -- | Базовый URL API (адрес сервера VK Teams) |
 | `base_path` | `/bot/v1` | Базовый путь API |
 | `timeout` | `30` | Таймаут HTTP-запроса (секунды) |
 | `poll_time` | `15` | Таймаут long polling (секунды) |
