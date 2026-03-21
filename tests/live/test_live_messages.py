@@ -51,7 +51,7 @@ async def test_send_text_to_group(bot, test_group_id):
 
 async def test_send_text_with_keyboard(bot, test_user_id):
     kb = InlineKeyboardMarkup()
-    kb.add(KeyboardButton("Test Button", callback_data="test_cb"))
+    kb.add(KeyboardButton(text="Test Button", callback_data="test_cb"))
     result = await bot.send_text(
         chat_id=test_user_id,
         text="live test: keyboard",
