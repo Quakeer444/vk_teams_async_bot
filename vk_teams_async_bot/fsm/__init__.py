@@ -12,3 +12,10 @@ __all__ = [
     "StatesGroup",
     "StorageKey",
 ]
+
+try:
+    from .storage import RedisStorage
+
+    __all__ = [*__all__, "RedisStorage"]
+except ImportError:
+    pass

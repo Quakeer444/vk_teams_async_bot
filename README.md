@@ -12,7 +12,7 @@
 
 - **27 методов API** -- полное покрытие VK Teams Bot API
 - **Event-driven архитектура** -- long polling, dispatcher, декораторы, фильтры
-- **FSM** -- конечный автомат для многошаговых диалогов
+- **FSM** -- конечный автомат для многошаговых диалогов (`MemoryStorage` для простых сценариев, `RedisStorage` для масштабируемых и отказоустойчивых)
 - **Middleware** -- хуки до и после обработчика
 - **Dependency Injection** -- автоматическое разрешение параметров обработчика]
 - **[Showcase-бот](examples/showcase_bot/)** -- готовый бот-пример, демонстрирующий основные возможности фреймворка: фильтры, FSM, middleware, DI, клавиатуры, пагинации, работу с файлами и чатами
@@ -24,6 +24,9 @@
 
 ```bash
 pip install vk-teams-async-bot
+
+# С поддержкой Redis (для хранения FSM-состояний):
+pip install vk-teams-async-bot[redis]
 ```
 
 ## Быстрый старт
@@ -249,40 +252,30 @@ async def get_phone(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
 
 Методы `FSMContext`: `set_state()`, `get_state()`, `update_data()`, `get_data()`, `clear()`.
 
-`MemoryStorage` предназначен для разработки. Для продакшена реализуйте `BaseStorage` поверх Redis или базы данных:
+`MemoryStorage` хранит данные в памяти процесса -- подходит для простых ботов и прототипов. Для масштабируемых и отказоустойчивых решений используйте `RedisStorage` (`pip install vk-teams-async-bot[redis]`):
 
 ```python
-import json
+from vk_teams_async_bot import RedisStorage
 
-import redis.asyncio as redis
+# По URL (RedisStorage создаёт и закрывает соединение сам):
+storage = RedisStorage(redis_url="redis://localhost:6379/0", state_ttl=600)
 
-from vk_teams_async_bot import BaseStorage, StorageKey
+# Или с существующим подключением (вы управляете его жизненным циклом):
+from redis.asyncio import Redis
+redis = Redis.from_url("redis://localhost:6379/0")
+storage = RedisStorage(redis=redis, state_ttl=600)
 
-
-class RedisStorage(BaseStorage):
-    def __init__(self, url: str = "redis://localhost:6379"):
-        self._redis = redis.from_url(url)
-
-    async def get_state(self, key: StorageKey) -> str | None:
-        return await self._redis.get(f"state:{key[0]}:{key[1]}")
-
-    async def set_state(self, key: StorageKey, state: str | None) -> None:
-        k = f"state:{key[0]}:{key[1]}"
-        if state is None:
-            await self._redis.delete(k)
-        else:
-            await self._redis.set(k, state)
-
-    async def get_data(self, key: StorageKey) -> dict:
-        raw = await self._redis.get(f"data:{key[0]}:{key[1]}")
-        return json.loads(raw) if raw else {}
-
-    async def set_data(self, key: StorageKey, data: dict) -> None:
-        await self._redis.set(f"data:{key[0]}:{key[1]}", json.dumps(data))
-
-    async def close(self) -> None:
-        await self._redis.aclose()
+dp = Dispatcher(storage=storage)
 ```
+
+**Параметры `RedisStorage`:**
+- `redis_url` / `redis` -- подключение к Redis (нужен один из двух)
+- `key_prefix` -- префикс ключей (по умолчанию `"vkbot"`)
+- `state_ttl` -- TTL в секундах (sliding window: обновляется при каждом взаимодействии). `None` -- без TTL
+
+`SessionTimeoutMiddleware` **не нужен** при использовании `RedisStorage(state_ttl=...)` -- Redis автоматически удаляет просроченные сессии.
+
+Для других бэкендов реализуйте `BaseStorage`.
 
 ### Middleware
 
@@ -579,7 +572,7 @@ poetry run pyright
 - Только long polling (webhook не поддерживается).
 - `Dispatcher` вызывает только **первый** подходящий обработчик для каждого события.
 - События обрабатываются параллельно (лимит: `max_concurrent_handlers`). События с одинаковым `(chat_id, user_id)` сериализуются автоматически при подключённом FSM-хранилище.
-- `MemoryStorage` только для разработки. Для продакшена реализуйте `BaseStorage`.
+- `MemoryStorage` хранит состояние в памяти процесса (подходит для простых ботов). Для масштабируемых решений -- `RedisStorage` (`pip install vk-teams-async-bot[redis]`).
 - `create_chat()` и `add_chat_members()` требуют on-premise VK Teams с настройкой администратора.
 
 ## Лицензия

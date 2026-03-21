@@ -8,3 +8,10 @@ __all__ = [
     "MemoryStorage",
     "StorageKey",
 ]
+
+try:
+    from .redis import RedisStorage
+
+    __all__ = [*__all__, "RedisStorage"]
+except ImportError:
+    pass

@@ -46,6 +46,11 @@ from .filters import (
     VoiceFilter,
 )
 from .fsm import BaseStorage, FSMContext, MemoryStorage, State, StatesGroup, StorageKey
+
+try:
+    from .fsm import RedisStorage
+except ImportError:
+    pass
 from .handlers import (
     BaseHandler,
     CallbackQueryHandler,
@@ -141,6 +146,7 @@ __all__ = [
     "MemoryStorage",
     "State",
     "StatesGroup",
+    "RedisStorage",
     "StorageKey",
     # handlers
     "BaseHandler",
