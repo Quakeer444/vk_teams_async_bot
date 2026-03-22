@@ -77,6 +77,7 @@ class PinnedMessageEvent(BaseEvent):
     from_: User = Field(alias="from")
     msg_id: str = Field(alias="msgId")
     text: str | None = None
+    format_: dict | None = Field(default=None, alias="format")
     timestamp: int | None = None
 
 
