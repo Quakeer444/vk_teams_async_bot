@@ -86,6 +86,13 @@ class Bot(
 
         self.depends: list[Callable[..., Any]] = []
 
+        logger.debug(
+            "Bot initialized (url=%s, poll_time=%d, shutdown_timeout=%.1f)",
+            url,
+            poll_time,
+            shutdown_timeout,
+        )
+
     # -- Context manager protocol ----------------------------------------------
 
     async def __aenter__(self) -> Bot:
@@ -137,6 +144,7 @@ class Bot(
             async def init(bot):
                 print("Bot started!")
         """
+        logger.debug("Startup hook registered: %s", callback.__name__)
         self._on_startup_hooks.append(callback)
         return callback
 
@@ -149,6 +157,7 @@ class Bot(
             async def cleanup(bot):
                 print("Bot stopped!")
         """
+        logger.debug("Shutdown hook registered: %s", callback.__name__)
         self._on_shutdown_hooks.append(callback)
         return callback
 
@@ -172,6 +181,7 @@ class Bot(
             )
 
         # Run startup hooks
+        logger.debug("Running %d startup hooks", len(self._on_startup_hooks))
         for hook in self._on_startup_hooks:
             await hook(self)
 
@@ -215,6 +225,7 @@ class Bot(
                     poll_time=self.poll_time,
                 )
                 backoff = 0.0
+                logger.debug("Received %d events", len(events))
 
                 for event in events:
                     self._update_last_event_id(event)

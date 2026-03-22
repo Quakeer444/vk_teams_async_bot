@@ -134,6 +134,7 @@ class VKTeamsSession:
         try:
             if self._download_session and not self._download_session.closed:
                 await self._download_session.close()
+                logger.debug("Download session closed")
         finally:
             self._download_session = None
             if self._session and not self._session.closed:
@@ -148,6 +149,7 @@ class VKTeamsSession:
         Shares the same SSL/connector/timeout settings as API requests.
         Wraps errors into library exceptions (NetworkError, TimeoutError, etc.).
         """
+        logger.debug("Download started: %s", url)
         session = await self._ensure_download_session()
         policy = self._retry_policy
         last_error: Exception | None = None
@@ -185,10 +187,17 @@ class VKTeamsSession:
                                 f"{self._max_download_size}",
                             )
                         chunks.append(chunk)
+                    logger.debug("Download complete: %s (%d bytes)", url, total)
                     return b"".join(chunks)
             except _RETRIABLE_ERRORS as exc:
                 last_error = exc
                 if attempt < policy.max_retries:
+                    logger.debug(
+                        "Download retry %d/%d for %s",
+                        attempt + 1,
+                        policy.max_retries,
+                        url,
+                    )
                     await exponential_backoff_with_jitter(policy, attempt)
                     continue
                 break
@@ -280,6 +289,7 @@ class VKTeamsSession:
         """Execute a single HTTP request and handle the response."""
         session = await self._ensure_session()
         url = f"{self._base_path}{endpoint}"
+        logger.debug("API request: %s %s", method, endpoint)
 
         try:
             response = await session.request(method, url, **kwargs)
@@ -292,6 +302,7 @@ class VKTeamsSession:
         except aiohttp.ClientError as exc:
             raise NetworkError(str(exc)) from exc
 
+        logger.debug("API response: %s %s -> %d", method, endpoint, response.status)
         return await self._handle_response(response)
 
     async def _handle_response(

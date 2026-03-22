@@ -57,13 +57,20 @@ class Dispatcher:
         self._user_locks: dict[tuple[str, str], asyncio.Lock] = {}
         self._lock_sweep_interval = lock_sweep_interval
         self._sweep_task: asyncio.Task[None] | None = None
+        logger.debug(
+            "Dispatcher created (storage=%s, sweep_interval=%.1fs)",
+            type(storage).__name__ if storage else None,
+            lock_sweep_interval,
+        )
 
     def add_middleware(self, mw: BaseMiddleware) -> None:
         """Register a middleware instance."""
+        logger.debug("Middleware registered: %s", type(mw).__name__)
         self.middleware.add(mw)
 
     def add_handler(self, handler: BaseHandler) -> None:
         """Register a handler instance."""
+        logger.debug("Handler registered: %s", type(handler).__name__)
         self.handlers.append(handler)
 
     # -- Decorator shortcuts ---------------------------------------------------
@@ -154,6 +161,7 @@ class Dispatcher:
             user_key = extract_chat_user(event)
             if user_key is not None:
                 data["fsm_context"] = FSMContext(storage=self._storage, key=user_key)
+                logger.debug("FSMContext injected for key=%s", user_key)
 
         # Build the handler chain wrapped by middlewares
         wrapped = self.middleware.wrap(self._dispatch_to_handler)
@@ -188,12 +196,26 @@ class Dispatcher:
                     continue
 
             await handler.handle(event, bot, extra_kwargs=data)
+            logger.debug(
+                "Handler matched: %s for event %s",
+                type(handler).__name__,
+                event.event_id,
+            )
             return
+        logger.debug(
+            "No handler matched for event %s (type=%s)",
+            event.event_id,
+            type(event).__name__,
+        )
 
     def start_sweep_task(self) -> None:
         """Start the periodic lock sweep background task."""
         if self._sweep_task is None or self._sweep_task.done():
             self._sweep_task = asyncio.create_task(self._sweep_loop())
+            logger.debug(
+                "Lock sweep task started (interval=%.1fs)",
+                self._lock_sweep_interval,
+            )
 
     async def _sweep_loop(self) -> None:
         """Periodically sweep idle user locks."""
@@ -212,6 +234,7 @@ class Dispatcher:
                 await self._sweep_task
             except asyncio.CancelledError:
                 pass
+            logger.debug("Lock sweep task stopped")
 
     def _sweep_idle_locks(self) -> None:
         """Remove user locks not currently held and without pending waiters.

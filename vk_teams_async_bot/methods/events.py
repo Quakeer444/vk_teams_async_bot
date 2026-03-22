@@ -53,4 +53,5 @@ class EventMethods(BaseMethods):
                         payload=ev.get("payload", {}),
                     )
                 )
+        logger.debug("Parsed %d/%d events", len(results), len(raw_events))
         return results

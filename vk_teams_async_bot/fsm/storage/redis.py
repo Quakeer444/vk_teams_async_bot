@@ -3,7 +3,10 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 try:
     from redis.asyncio import Redis
@@ -47,6 +50,11 @@ class RedisStorage(BaseStorage):
 
         self._key_prefix = key_prefix
         self._state_ttl = state_ttl
+        logger.debug(
+            "RedisStorage initialized (prefix=%s, ttl=%s)",
+            self._key_prefix,
+            self._state_ttl,
+        )
 
     def _make_key(self, key: StorageKey) -> str:
         chat_id, user_id = key
@@ -68,6 +76,7 @@ class RedisStorage(BaseStorage):
         return raw.decode() if isinstance(raw, bytes) else str(raw)
 
     async def set_state(self, key: StorageKey, state: str | None) -> None:
+        logger.debug("RedisStorage.set_state: key=%s, state=%s", key, state)
         rk = self._make_key(key)
         if state is None:
             await self._redis.hdel(rk, "state")  # type: ignore[misc]
@@ -114,9 +123,11 @@ class RedisStorage(BaseStorage):
         return updated
 
     async def clear(self, key: StorageKey) -> None:
+        logger.debug("RedisStorage.clear: key=%s", key)
         rk = self._make_key(key)
         await self._redis.delete(rk)
 
     async def close(self) -> None:
+        logger.debug("RedisStorage connection closed")
         if self._owns_connection:
             await self._redis.aclose()

@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from .base import BaseMiddleware, Event, HandlerType
+
+logger = logging.getLogger(__name__)
 
 
 class MiddlewareManager:
@@ -25,6 +28,11 @@ class MiddlewareManager:
 
     def add(self, middleware: BaseMiddleware) -> None:
         """Register a middleware instance."""
+        logger.debug(
+            "Middleware added: %s (total: %d)",
+            type(middleware).__name__,
+            len(self._middlewares) + 1,
+        )
         self._middlewares.append(middleware)
 
     @property
@@ -39,6 +47,7 @@ class MiddlewareManager:
         handler = final_handler
         for mw in reversed(self._middlewares):
             handler = _make_layer(mw, handler)
+        logger.debug("Middleware chain built (%d layers)", len(self._middlewares))
         return handler
 
 

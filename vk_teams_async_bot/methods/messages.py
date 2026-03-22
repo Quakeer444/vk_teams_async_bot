@@ -4,8 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
+
+logger = logging.getLogger(__name__)
 
 from aiohttp import FormData
 
@@ -148,6 +151,7 @@ class MessageMethods(BaseMethods):
 
         Endpoint: GET /messages/sendText
         """
+        logger.debug("send_text: chat_id=%s", chat_id)
         _validate_reply_forward(reply_msg_id, forward_chat_id, forward_msg_id)
         _validate_parse_format(parse_mode, format_)
 
@@ -186,6 +190,7 @@ class MessageMethods(BaseMethods):
 
         Endpoint: GET|POST /messages/sendFile
         """
+        logger.debug("send_file: chat_id=%s, upload=%s", chat_id, file is not None)
         _validate_file_source(file_id, file)
         _validate_reply_forward(reply_msg_id, forward_chat_id, forward_msg_id)
         _validate_parse_format(parse_mode, format_)
@@ -240,6 +245,7 @@ class MessageMethods(BaseMethods):
 
         Endpoint: GET|POST /messages/sendVoice
         """
+        logger.debug("send_voice: chat_id=%s", chat_id)
         _validate_file_source(file_id, file)
         _validate_reply_forward(reply_msg_id, forward_chat_id, forward_msg_id)
 
@@ -281,6 +287,7 @@ class MessageMethods(BaseMethods):
 
         Endpoint: GET /messages/editText
         """
+        logger.debug("edit_text: chat_id=%s, msg_id=%s", chat_id, msg_id)
         _validate_parse_format(parse_mode, format_)
 
         raw = await self._session.get(
@@ -303,6 +310,7 @@ class MessageMethods(BaseMethods):
 
         Endpoint: GET /messages/deleteMessages
         """
+        logger.debug("delete_messages: chat_id=%s, msg_id=%s", chat_id, msg_id)
         raw = await self._session.get(
             "/messages/deleteMessages",
             chatId=chat_id,

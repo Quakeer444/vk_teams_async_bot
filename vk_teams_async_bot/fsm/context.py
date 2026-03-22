@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from .state import State
 from .storage.base import BaseStorage, StorageKey
+
+logger = logging.getLogger(__name__)
 
 
 class FSMContext:
@@ -33,6 +36,7 @@ class FSMContext:
             raw = state.state
         else:
             raw = state
+        logger.debug("FSM state transition: key=%s, new_state=%s", self._key, raw)
         await self._storage.set_state(self._key, raw)
 
     async def get_data(self) -> dict[str, Any]:
@@ -41,12 +45,15 @@ class FSMContext:
 
     async def set_data(self, data: dict[str, Any]) -> None:
         """Replace all stored data."""
+        logger.debug("FSM data replaced: key=%s", self._key)
         await self._storage.set_data(self._key, data)
 
     async def update_data(self, **kwargs: Any) -> dict[str, Any]:
         """Merge kwargs into existing data and return the result."""
+        logger.debug("FSM data updated: key=%s, keys=%s", self._key, list(kwargs.keys()))
         return await self._storage.update_data(self._key, data=kwargs)
 
     async def clear(self) -> None:
         """Clear both state and data."""
+        logger.debug("FSM state cleared: key=%s", self._key)
         await self._storage.clear(self._key)

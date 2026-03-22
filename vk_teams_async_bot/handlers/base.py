@@ -126,6 +126,12 @@ class BaseHandler:
                     depends[key] = dep_func
                     break
 
+        if depends:
+            logger.debug(
+                "DI resolved for %s: %s",
+                self.callback.__name__,
+                list(depends.keys()),
+            )
         return depends
 
     async def handle(
@@ -174,7 +180,9 @@ class BaseHandler:
                     continue
                 if inspect.isfunction(item_func):
                     objects[item_name] = item_func()
+            logger.debug("Calling handler: %s", self.callback.__name__)
             await self.callback(event, bot, **objects)
+            logger.debug("Handler completed: %s", self.callback.__name__)
         finally:
             for gen in async_generators:
                 try:

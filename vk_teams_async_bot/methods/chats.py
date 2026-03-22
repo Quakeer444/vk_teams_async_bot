@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 from aiohttp import FormData
 from pydantic import TypeAdapter
@@ -59,6 +62,7 @@ class ChatMethods(BaseMethods):
 
         Endpoint: GET /chats/createChat
         """
+        logger.debug("create_chat: name=%s", name)
         raw = await self._session.get(
             "/chats/createChat",
             name=name,
@@ -118,6 +122,7 @@ class ChatMethods(BaseMethods):
 
         Endpoint: GET /chats/members/add
         """
+        logger.debug("add_chat_members: chat_id=%s, count=%d", chat_id, len(members))
         raw = await self._session.get(
             "/chats/members/add",
             chatId=chat_id,
@@ -134,6 +139,7 @@ class ChatMethods(BaseMethods):
 
         Endpoint: GET /chats/members/delete
         """
+        logger.debug("delete_chat_members: chat_id=%s, count=%d", chat_id, len(members))
         raw = await self._session.get(
             "/chats/members/delete",
             chatId=chat_id,
@@ -244,6 +250,7 @@ class ChatMethods(BaseMethods):
 
         Endpoint: GET /chats/blockUser
         """
+        logger.debug("block_user: chat_id=%s, user_id=%s", chat_id, user_id)
         raw = await self._session.get(
             "/chats/blockUser",
             chatId=chat_id,

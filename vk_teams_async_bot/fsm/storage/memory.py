@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from .base import BaseStorage, StorageKey
+
+logger = logging.getLogger(__name__)
 
 
 class MemoryStorage(BaseStorage):
@@ -22,6 +25,7 @@ class MemoryStorage(BaseStorage):
         return self._states.get(key)
 
     async def set_state(self, key: StorageKey, state: str | None) -> None:
+        logger.debug("MemoryStorage.set_state: key=%s, state=%s", key, state)
         if state is None:
             self._states.pop(key, None)
         else:
@@ -42,9 +46,15 @@ class MemoryStorage(BaseStorage):
         return updated.copy()
 
     async def clear(self, key: StorageKey) -> None:
+        logger.debug("MemoryStorage.clear: key=%s", key)
         self._states.pop(key, None)
         self._data.pop(key, None)
 
     async def close(self) -> None:
+        logger.debug(
+            "MemoryStorage closed (%d states, %d data entries)",
+            len(self._states),
+            len(self._data),
+        )
         self._states.clear()
         self._data.clear()
