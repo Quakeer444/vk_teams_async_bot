@@ -264,5 +264,8 @@ class Dispatcher:
 
         for f in filters:
             for leaf in f.iter_filters():
-                if isinstance(leaf, (StateFilter, StatesGroupFilter)) and leaf._storage is None:
+                if (
+                    isinstance(leaf, (StateFilter, StatesGroupFilter))
+                    and leaf._storage is None
+                ):
                     leaf.set_storage(self._storage)

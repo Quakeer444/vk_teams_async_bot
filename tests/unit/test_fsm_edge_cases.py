@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
+from vk_teams_async_bot.filters.state import StateFilter, StatesGroupFilter
 from vk_teams_async_bot.fsm.context import FSMContext
 from vk_teams_async_bot.fsm.state import State, StatesGroup
 from vk_teams_async_bot.fsm.storage.memory import MemoryStorage
-from vk_teams_async_bot.filters.state import StateFilter, StatesGroupFilter
 from vk_teams_async_bot.types.enums import EventType
 from vk_teams_async_bot.types.event import (
     DeletedMessageEvent,

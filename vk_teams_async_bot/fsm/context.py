@@ -50,7 +50,9 @@ class FSMContext:
 
     async def update_data(self, **kwargs: Any) -> dict[str, Any]:
         """Merge kwargs into existing data and return the result."""
-        logger.debug("FSM data updated: key=%s, keys=%s", self._key, list(kwargs.keys()))
+        logger.debug(
+            "FSM data updated: key=%s, keys=%s", self._key, list(kwargs.keys())
+        )
         return await self._storage.update_data(self._key, data=kwargs)
 
     async def clear(self) -> None:

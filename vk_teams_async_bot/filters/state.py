@@ -23,7 +23,9 @@ class StateFilter(FilterBase):
     system (dispatcher) should call the async check() method instead.
     """
 
-    def __init__(self, state: State | str | None, storage: BaseStorage | None = None) -> None:
+    def __init__(
+        self, state: State | str | None, storage: BaseStorage | None = None
+    ) -> None:
         self._state = state
         self._storage = storage
 
@@ -73,7 +75,9 @@ class StateFilter(FilterBase):
 class StatesGroupFilter(FilterBase):
     """Match any state within a StatesGroup."""
 
-    def __init__(self, group: type[StatesGroup], storage: BaseStorage | None = None) -> None:
+    def __init__(
+        self, group: type[StatesGroup], storage: BaseStorage | None = None
+    ) -> None:
         self._group = group
         self._state_names = frozenset(group.all_state_names())
         self._storage = storage
@@ -96,9 +100,7 @@ class StatesGroupFilter(FilterBase):
         self._storage = storage
 
     def __call__(self, event: BaseEvent) -> bool:
-        raise NotImplementedError(
-            "StatesGroupFilter requires async check()."
-        )
+        raise NotImplementedError("StatesGroupFilter requires async check().")
 
     def __repr__(self) -> str:
         return f"StatesGroupFilter(group={self._group.__name__!r})"
