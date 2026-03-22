@@ -9,6 +9,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 try:
+    from redis import WatchError
     from redis.asyncio import Redis
 except ImportError as exc:
     raise ImportError(
@@ -109,18 +110,25 @@ class RedisStorage(BaseStorage):
         self, key: StorageKey, data: dict[str, Any]
     ) -> dict[str, Any]:
         rk = self._make_key(key)
-        raw = await self._redis.hget(rk, "data")  # type: ignore[misc]
-        if raw is None:
-            current: dict[str, Any] = {}
-        else:
-            raw_str = raw.decode() if isinstance(raw, bytes) else str(raw)
-            current = json.loads(raw_str)
-        updated = {**current, **data}
-        pipe = self._redis.pipeline()
-        pipe.hset(rk, "data", json.dumps(updated, ensure_ascii=False))
-        await self._refresh_ttl(pipe, rk)
-        await pipe.execute()
-        return updated
+        while True:
+            try:
+                async with self._redis.pipeline(transaction=True) as pipe:
+                    await pipe.watch(rk)
+                    raw = await pipe.hget(rk, "data")
+                    if raw is None:
+                        current: dict[str, Any] = {}
+                    else:
+                        raw_str = raw.decode() if isinstance(raw, bytes) else str(raw)
+                        current = json.loads(raw_str)
+                    updated = {**current, **data}
+                    pipe.multi()
+                    pipe.hset(rk, "data", json.dumps(updated, ensure_ascii=False))
+                    if self._state_ttl is not None:
+                        pipe.expire(rk, self._state_ttl)
+                    await pipe.execute()
+                    return updated
+            except WatchError:
+                continue
 
     async def clear(self, key: StorageKey) -> None:
         logger.debug("RedisStorage.clear: key=%s", key)
