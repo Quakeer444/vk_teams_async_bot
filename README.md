@@ -216,6 +216,9 @@ async def on_order(event, bot): ...
 | `CallbackDataFilter(data)`                  | Точное совпадение callback data        |
 | `CallbackDataRegexpFilter(pattern)`         | Regex по callback data                 |
 | `StateFilter(state, storage)`               | Состояние FSM                          |
+| `StateFilter("*")`                          | Любое ненулевое состояние FSM          |
+| `StateFilter(None)`                         | Пользователь не в FSM                  |
+| `StatesGroupFilter(Group)`                  | Любое состояние из группы              |
 | `FileFilter()`                              | Есть вложенный файл                    |
 | `FileTypeFilter("image")`                   | Файл по типу                           |
 | `VoiceFilter()`                             | Голосовое сообщение                    |
@@ -299,6 +302,24 @@ async def get_phone(event: NewMessageEvent, bot: Bot, fsm_context: FSMContext):
 ```
 
 Методы `FSMContext`: `set_state()`, `get_state()`, `update_data()`, `get_data()`, `clear()`.
+
+**Wildcard и групповые фильтры:**
+
+```python
+from vk_teams_async_bot import StateFilter, StatesGroupFilter
+
+# Любое ненулевое состояние (пользователь "где-то" в FSM):
+@dp.message(StateFilter("*"))
+async def any_state_handler(event, bot, fsm_context): ...
+
+# Пользователь не в FSM (начальное/сброшенное состояние):
+@dp.message(StateFilter(None))
+async def no_state_handler(event, bot): ...
+
+# Любое состояние из группы Form:
+@dp.message(StatesGroupFilter(Form))
+async def form_handler(event, bot, fsm_context): ...
+```
 
 `MemoryStorage` хранит данные в памяти процесса - подходит для простых ботов и прототипов. Для масштабируемых и отказоустойчивых решений используйте `RedisStorage` (`pip install vk-teams-async-bot[redis]`):
 
