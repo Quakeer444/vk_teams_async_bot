@@ -10,7 +10,7 @@
 
 ## Возможности
 
-- **27 методов API** - полное покрытие VK Teams Bot API
+- **28 методов API** - полное покрытие VK Teams Bot API
 - **Event-driven архитектура** - long polling, dispatcher, декораторы, фильтры
 - **FSM** - конечный автомат для многошаговых диалогов (`MemoryStorage` для простых сценариев, `RedisStorage` для масштабируемых и отказоустойчивых)
 - **Middleware** - хуки до и после обработчика
@@ -80,17 +80,27 @@ python bot.py
   - [Inline-клавиатура](#inline-клавиатура)
   - [Фильтры](#фильтры)
   - [FSM (конечный автомат)](#fsm-конечный-автомат)
+    - [RedisStorage для production](#redisstorage-для-production)
   - [Middleware](#middleware)
+    - [Middleware для авторизации (RBAC)](#middleware-для-авторизации-rbac)
   - [Файлы](#файлы)
   - [Dependency Injection](#dependency-injection)
   - [Lifecycle-хуки](#lifecycle-хуки)
   - [Форматирование текста](#форматирование-текста)
+  - [Расширенные возможности клавиатуры](#расширенные-возможности-клавиатуры)
+  - [Перечисления](#перечисления)
 - [События](#события)
+  - [Базовые модели](#базовые-модели)
+  - [Модели событий](#модели-событий)
+  - [Типы вложений (MessagePart)](#типы-вложений-messagepart)
 - [Методы API](#методы-api)
   - [Сообщения](#сообщения)
   - [Чаты](#чаты)
   - [Файлы и сервис](#файлы-и-сервис)
+  - [Модели ответов API](#модели-ответов-api)
+  - [Полные сигнатуры ключевых методов](#полные-сигнатуры-ключевых-методов)
 - [Обработка ошибок](#обработка-ошибок)
+  - [Retry с экспоненциальным backoff](#retry-с-экспоненциальным-backoff)
 - [Конфигурация бота](#конфигурация-бота)
 - [Автоматические уведомления по расписанию](#автоматические-уведомления-по-расписанию)
   - [Простые периодические уведомления](#простые-периодические-уведомления)
@@ -215,7 +225,7 @@ async def on_order(event, bot): ...
 | `ReplyFilter()`                             | Ответ на сообщение                     |
 | `ForwardFilter()`                           | Пересланное сообщение                  |
 | `RegexpTextPartsFilter(pattern)`            | Regex по текстовым частям сообщения    |
-| `MessageTextPartFromNickFilter(nick, text)` | Упоминание по нику + совпадение текста |
+| `MessageTextPartFromNickFilter(nick, all_text_parts_from_nick=False)` | Пересланные/ответы от конкретного ника |
 
 Для создания собственного фильтра наследуйтесь от `FilterBase`:
 
@@ -314,6 +324,73 @@ dp = Dispatcher(storage=storage)
 
 `SessionTimeoutMiddleware` **не нужен** при использовании `RedisStorage(state_ttl=...)` - Redis автоматически удаляет просроченные сессии.
 
+#### RedisStorage для production
+
+Для промышленной эксплуатации, когда состояния FSM должны сохраняться между перезапусками бота и распределяться между инстансами:
+
+```python
+import asyncio
+import os
+
+from redis.asyncio import Redis
+
+from vk_teams_async_bot import Bot, Dispatcher, RedisStorage
+
+# 1. Подключение по URL (RedisStorage создаёт и закрывает соединение сам)
+storage = RedisStorage(
+    redis_url="redis://localhost:6379/0",
+    key_prefix="mybot",   # уникальный префикс, если несколько ботов на одном Redis
+    state_ttl=3600,        # TTL сессии: 1 час (sliding window)
+)
+
+# 2. С существующим Redis-клиентом (вы управляете жизненным циклом)
+redis = Redis.from_url(
+    "redis://localhost:6379/0",
+    decode_responses=False,
+    max_connections=20,     # пул соединений
+)
+storage = RedisStorage(redis=redis, key_prefix="mybot", state_ttl=3600)
+
+# 3. Redis Sentinel (высокая доступность)
+from redis.asyncio.sentinel import Sentinel
+sentinel = Sentinel(
+    [("sentinel1", 26379), ("sentinel2", 26379), ("sentinel3", 26379)],
+    socket_timeout=0.5,
+)
+redis = sentinel.master_for("mymaster")
+storage = RedisStorage(redis=redis, key_prefix="mybot", state_ttl=3600)
+
+bot = Bot(bot_token=os.environ["BOT_TOKEN"], url=os.environ.get("BOT_API_URL"))
+dp = Dispatcher(storage=storage)
+
+
+@bot.on_shutdown
+async def cleanup(bot: Bot):
+    await storage.close()   # закрывает Redis, если RedisStorage им владеет
+    # при использовании внешнего redis: await redis.aclose()
+
+
+async def main():
+    async with bot:
+        await bot.start_polling(dp)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**Структура ключей в Redis:**
+
+```
+{key_prefix}:{chat_id}:{user_id}   # Redis hash
+  state → "Form:waiting_name"       # текущее состояние FSM
+  data  → '{"name": "Ivan"}'        # данные пользователя (JSON)
+```
+
+**Поведение TTL (sliding window):** каждая операция (`get_state`, `set_state`, `get_data`, `set_data`, `update_data`) обновляет TTL ключа. Если пользователь не взаимодействует с ботом дольше `state_ttl` секунд, Redis автоматически удаляет ключ и состояние сбрасывается.
+
+**Несколько инстансов бота:** все инстансы подключаются к одному Redis с одинаковым `key_prefix`. Пользователь может начать диалог с одним инстансом и продолжить с другим - состояние FSM будет единым. Dispatcher автоматически блокирует параллельные события одного пользователя через per-user lock.
+
 Для других бэкендов реализуйте `BaseStorage`.
 
 ### Middleware
@@ -336,6 +413,78 @@ dp.add_middleware(LogMiddleware())
 ```
 
 Словарь `data` содержит `bot`, `dispatcher` и `fsm_context` (если настроено хранилище).
+
+#### Middleware для авторизации (RBAC)
+
+Контроль доступа на основе ролей с учётом FSM-состояния и метаданных пользователя:
+
+```python
+from vk_teams_async_bot import BaseMiddleware, Bot, Dispatcher, FSMContext
+
+# Роли и разрешения
+ROLES: dict[str, set[str]] = {
+    "admin": {"manage_users", "view_reports", "configure"},
+    "manager": {"view_reports"},
+    "user": set(),
+}
+
+# Привязка пользователей к ролям (в production - из БД или LDAP)
+USER_ROLES: dict[str, str] = {
+    "admin@company.com": "admin",
+    "manager@company.com": "manager",
+}
+
+# Команды, требующие определённых разрешений
+COMMAND_PERMISSIONS: dict[str, str] = {
+    "/reports": "view_reports",
+    "/config": "configure",
+    "/ban": "manage_users",
+}
+
+
+class AuthorizationMiddleware(BaseMiddleware):
+    """RBAC-middleware: проверяет разрешения перед вызовом обработчика."""
+
+    async def __call__(self, handler, event, data):
+        user_id = str(getattr(event, "from_", ""))
+        role = USER_ROLES.get(user_id, "user")
+        permissions = ROLES.get(role, set())
+
+        # Добавляем роль и разрешения в data для использования в обработчиках
+        data["user_role"] = role
+        data["user_permissions"] = permissions
+
+        # Проверяем разрешения для команд
+        text = getattr(event, "text", "") or ""
+        command = text.split()[0] if text.startswith("/") else None
+
+        if command and command in COMMAND_PERMISSIONS:
+            required = COMMAND_PERMISSIONS[command]
+            if required not in permissions:
+                bot: Bot = data["bot"]
+                await bot.send_text(
+                    chat_id=event.chat.chat_id,
+                    text=f"Нет доступа к {command}. Требуется: {required}",
+                )
+                return None  # блокируем обработчик
+
+        return await handler(event, data)
+
+
+dp = Dispatcher()
+dp.add_middleware(AuthorizationMiddleware())
+
+
+# В обработчиках доступны роль и разрешения:
+@dp.command("reports")
+async def show_reports(event, bot: Bot, user_role: str, user_permissions: set):
+    await bot.send_text(
+        chat_id=event.chat.chat_id,
+        text=f"Отчёты (роль: {user_role})",
+    )
+```
+
+Middleware можно комбинировать — они выполняются в порядке добавления: первый добавленный оборачивает второй, второй оборачивает третий и т.д.
 
 Встроенный `SessionTimeoutMiddleware` очищает устаревшие FSM-сессии:
 
@@ -434,7 +583,44 @@ await bot.send_text(chat_id=chat_id, text="*жирный* _курсив_", parse
 await bot.send_text(chat_id=chat_id, text="<b>жирный</b> <i>курсив</i>", parse_mode=ParseMode.HTML)
 ```
 
-Для inline-форматирования используйте `Format` и `StyleType` - см. [examples/format_bot.py](examples/format_bot.py).
+Для inline-форматирования без parse_mode используйте `Format` и `StyleType`:
+
+```python
+from vk_teams_async_bot import Bot, Format, StyleType
+
+text = "Жирный и ссылка тут"
+fmt = Format()
+fmt.add(StyleType.BOLD, offset=0, length=6)
+fmt.add(StyleType.LINK, offset=9, length=6, url="https://example.com")
+
+await bot.send_text(chat_id=chat_id, text=text, format_=fmt)
+```
+
+`format_` и `parse_mode` взаимоисключающие -- используйте только один из них.
+
+### Расширенные возможности клавиатуры
+
+```python
+kb = InlineKeyboardMarkup()
+kb.row(btn1, btn2, btn3)   # явная строка (игнорирует buttons_in_row)
+kb.add(btn4, btn5)          # автоматическая разбивка по buttons_in_row
+
+# Объединение клавиатур
+combined = kb1 + kb2         # новая клавиатура со всеми строками
+combined = kb + single_btn   # добавить кнопку как отдельную строку
+```
+
+### Перечисления
+
+| Enum | Значения |
+| ---- | -------- |
+| `EventType` | `NEW_MESSAGE`, `EDITED_MESSAGE`, `DELETED_MESSAGE`, `PINNED_MESSAGE`, `UNPINNED_MESSAGE`, `NEW_CHAT_MEMBERS`, `LEFT_CHAT_MEMBERS`, `CALLBACK_QUERY` |
+| `ChatType` | `PRIVATE`, `GROUP`, `CHANNEL` |
+| `ChatAction` | `TYPING`, `LOOKING` |
+| `Parts` | `FILE`, `STICKER`, `MENTION`, `VOICE`, `FORWARD`, `REPLY` |
+| `StyleType` | `BOLD`, `ITALIC`, `UNDERLINE`, `STRIKETHROUGH`, `LINK`, `MENTION`, `INLINE_CODE`, `PRE`, `ORDERED_LIST`, `UNORDERED_LIST`, `QUOTE` |
+| `ParseMode` | `MARKDOWNV2`, `HTML` |
+| `StyleKeyboard` | `BASE`, `PRIMARY`, `ATTENTION` |
 
 ## События
 
@@ -451,52 +637,230 @@ await bot.send_text(chat_id=chat_id, text="<b>жирный</b> <i>курсив</
 
 Неизвестные типы событий парсятся как `RawUnknownEvent` и пропускаются без ошибок.
 
+### Базовые модели
+
+Модели, используемые внутри событий:
+
+**User** -- отправитель сообщения (`event.from_`):
+
+| Поле | Тип | Описание |
+| ---- | --- | -------- |
+| `user_id` | `str` | ID пользователя (email или UIN) |
+| `first_name` | `str \| None` | Имя |
+| `last_name` | `str \| None` | Фамилия |
+| `nick` | `str \| None` | Никнейм |
+
+**EventChatRef** -- чат события (`event.chat`):
+
+| Поле | Тип | Описание |
+| ---- | --- | -------- |
+| `chat_id` | `str` | ID чата |
+| `type` | `ChatType \| str` | `"private"`, `"group"`, `"channel"` |
+| `title` | `str \| None` | Название (для групп/каналов) |
+
+### Модели событий
+
+Все события наследуют `event_id: int` и `type: EventType`.
+
+**NewMessageEvent** (`@dp.message()`):
+
+| Поле | Тип | Описание |
+| ---- | --- | -------- |
+| `chat` | `EventChatRef` | Чат |
+| `from_` | `User` | Отправитель |
+| `msg_id` | `str` | ID сообщения |
+| `text` | `str \| None` | Текст |
+| `format_` | `dict \| None` | Форматирование |
+| `timestamp` | `int \| None` | Unix-время |
+| `parts` | `list[MessagePart] \| None` | Вложения (файлы, стикеры, упоминания, ...) |
+
+**EditedMessageEvent** -- как `NewMessageEvent` + `edited_timestamp: int | None`, без `parts`.
+
+**DeletedMessageEvent**: `chat`, `msg_id`, `timestamp`.
+
+**PinnedMessageEvent**: `chat`, `from_`, `msg_id`, `text`, `format_`, `timestamp`.
+
+**UnpinnedMessageEvent**: `chat`, `msg_id`, `timestamp`.
+
+**NewChatMembersEvent**: `chat`, `new_members: list[User]`, `added_by: User`.
+
+**LeftChatMembersEvent**: `chat`, `left_members: list[User]`, `removed_by: User`.
+
+**CallbackQueryEvent** (`@dp.callback_query()`):
+
+| Поле | Тип | Описание |
+| ---- | --- | -------- |
+| `chat` | `EventChatRef \| None` | Чат |
+| `from_` | `User` | Кто нажал кнопку |
+| `query_id` | `str` | ID запроса (для `answer_callback_query`) |
+| `callback_data` | `str` | Данные кнопки |
+| `message` | `NestedMessage \| None` | Сообщение, к которому была кнопка |
+
+**RawUnknownEvent**: `event_id: int`, `type: str`, `payload: dict`.
+
+### Типы вложений (MessagePart)
+
+`event.parts` содержит список `MessagePart` -- discriminated union по полю `type`:
+
+| Тип | `type` | `payload` |
+| --- | ------ | --------- |
+| `FilePart` | `"file"` | `FilePartPayload(file_id, caption, type, format_)` |
+| `StickerPart` | `"sticker"` | `StickerPartPayload(file_id)` |
+| `MentionPart` | `"mention"` | `User(user_id, first_name, last_name, nick)` |
+| `VoicePart` | `"voice"` | `FilePartPayload(file_id, caption, type, format_)` |
+| `ForwardPart` | `"forward"` | `ForwardPartPayload(message: NestedMessage)` |
+| `ReplyPart` | `"reply"` | `ReplyPartPayload(message: NestedMessage)` |
+
+**NestedMessage** (внутри `ForwardPart`, `ReplyPart`, `CallbackQueryEvent`):
+
+| Поле | Тип |
+| ---- | --- |
+| `from_` | `User` |
+| `msg_id` | `str` |
+| `text` | `str \| None` |
+| `format_` | `dict \| None` |
+| `timestamp` | `int \| None` |
+| `chat` | `NestedMessageChat \| None` |
+
+Пример работы с вложениями:
+
+```python
+for part in event.parts or []:
+    if isinstance(part, FilePart):
+        file_id = part.payload.file_id
+    elif isinstance(part, ReplyPart):
+        original_text = part.payload.message.text
+```
+
 ## Методы API
 
 ### Сообщения
 
-| Метод                                          | Endpoint                        |
-| ---------------------------------------------- | ------------------------------- |
-| `send_text(chat_id, text, ...)`                | `/messages/sendText`            |
-| `send_file(chat_id, file=... \| file_id=...)`  | `/messages/sendFile`            |
-| `send_voice(chat_id, file=... \| file_id=...)` | `/messages/sendVoice`           |
-| `edit_text(chat_id, msg_id, text, ...)`        | `/messages/editText`            |
-| `delete_messages(chat_id, msg_id)`             | `/messages/deleteMessages`      |
-| `answer_callback_query(query_id, ...)`         | `/messages/answerCallbackQuery` |
+| Метод | Endpoint | Возвращает |
+| ----- | -------- | ---------- |
+| `send_text(chat_id, text, ...)` | `/messages/sendText` | `MessageResponse` |
+| `send_file(chat_id, file=... \| file_id=...)` | `/messages/sendFile` | `FileUploadResponse` |
+| `send_voice(chat_id, file=... \| file_id=...)` | `/messages/sendVoice` | `FileUploadResponse` |
+| `edit_text(chat_id, msg_id, text, ...)` | `/messages/editText` | `OkResponse` |
+| `delete_messages(chat_id, msg_id)` | `/messages/deleteMessages` | `OkResponse` |
+| `answer_callback_query(query_id, ...)` | `/messages/answerCallbackQuery` | `OkResponse` |
 
 ### Чаты
 
-| Метод                                    | Endpoint                 |
-| ---------------------------------------- | ------------------------ |
-| `get_chat_info(chat_id)`                 | `/chats/getInfo`         |
-| `get_chat_admins(chat_id)`               | `/chats/getAdmins`       |
-| `get_chat_members(chat_id, cursor=...)`  | `/chats/getMembers`      |
-| `get_blocked_users(chat_id)`             | `/chats/getBlockedUsers` |
-| `get_pending_users(chat_id)`             | `/chats/getPendingUsers` |
-| `block_user(chat_id, user_id, ...)`      | `/chats/blockUser`       |
-| `unblock_user(chat_id, user_id)`         | `/chats/unblockUser`     |
-| `resolve_pending(chat_id, approve, ...)` | `/chats/resolvePending`  |
-| `set_chat_title(chat_id, title)`         | `/chats/setTitle`        |
-| `set_chat_about(chat_id, about)`         | `/chats/setAbout`        |
-| `set_chat_rules(chat_id, rules)`         | `/chats/setRules`        |
-| `pin_message(chat_id, msg_id)`           | `/chats/pinMessage`      |
-| `unpin_message(chat_id, msg_id)`         | `/chats/unpinMessage`    |
-| `send_chat_actions(chat_id, actions)`    | `/chats/sendActions`     |
-| `set_chat_avatar(chat_id, image)`        | `/chats/avatar/set`      |
-| `create_chat(name, ...)`                 | `/chats/createChat` \*   |
-| `add_chat_members(chat_id, members)`     | `/chats/members/add` \*  |
-| `delete_chat_members(chat_id, members)`  | `/chats/members/delete`  |
+| Метод | Endpoint | Возвращает |
+| ----- | -------- | ---------- |
+| `get_chat_info(chat_id)` | `/chats/getInfo` | `ChatInfoPrivate \| ChatInfoGroup \| ChatInfoChannel` |
+| `get_chat_admins(chat_id)` | `/chats/getAdmins` | `AdminsResponse` |
+| `get_chat_members(chat_id, cursor=...)` | `/chats/getMembers` | `MembersResponse` |
+| `get_blocked_users(chat_id)` | `/chats/getBlockedUsers` | `UsersResponse` |
+| `get_pending_users(chat_id)` | `/chats/getPendingUsers` | `UsersResponse` |
+| `block_user(chat_id, user_id, ...)` | `/chats/blockUser` | `OkResponse` |
+| `unblock_user(chat_id, user_id)` | `/chats/unblockUser` | `OkResponse` |
+| `resolve_pending(chat_id, approve, ...)` | `/chats/resolvePending` | `OkResponse` |
+| `set_chat_title(chat_id, title)` | `/chats/setTitle` | `OkResponse` |
+| `set_chat_about(chat_id, about)` | `/chats/setAbout` | `OkResponse` |
+| `set_chat_rules(chat_id, rules)` | `/chats/setRules` | `OkResponse` |
+| `pin_message(chat_id, msg_id)` | `/chats/pinMessage` | `OkResponse` |
+| `unpin_message(chat_id, msg_id)` | `/chats/unpinMessage` | `OkResponse` |
+| `send_chat_actions(chat_id, actions)` | `/chats/sendActions` | `OkResponse` |
+| `set_chat_avatar(chat_id, image)` | `/chats/avatar/set` | `OkWithDescriptionResponse` |
+| `create_chat(name, ...)` | `/chats/createChat` \* | `ChatCreateResponse` |
+| `add_chat_members(chat_id, members)` | `/chats/members/add` \* | `PartialSuccessResponse` |
+| `delete_chat_members(chat_id, members)` | `/chats/members/delete` | `OkResponse` |
 
 \* Только для on-premise, требуется настройка администратором.
 
 ### Файлы и сервис
 
-| Метод                                  | Описание            |
-| -------------------------------------- | ------------------- |
-| `get_file_info(file_id)`               | Метаданные файла    |
-| `download_file(url)`                   | Скачать файл по URL |
-| `get_self()`                           | Информация о боте   |
-| `get_events(last_event_id, poll_time)` | Long polling        |
+| Метод | Описание | Возвращает |
+| ----- | -------- | ---------- |
+| `get_file_info(file_id)` | Метаданные файла | `FileInfo` |
+| `download_file(url)` | Скачать файл по URL | `bytes` |
+| `get_self()` | Информация о боте | `BotInfo` |
+| `get_events(last_event_id, poll_time)` | Long polling | `list[BaseEvent \| RawUnknownEvent]` |
+
+### Модели ответов API
+
+| Модель | Поля | Используется в |
+| ------ | ---- | -------------- |
+| `MessageResponse` | `ok: bool`, `msg_id: str` | `send_text` |
+| `FileUploadResponse` | `ok: bool`, `file_id: str`, `msg_id: str` | `send_file`, `send_voice` |
+| `OkResponse` | `ok: bool` | `edit_text`, `delete_messages`, `answer_callback_query`, ... |
+| `OkWithDescriptionResponse` | `ok: bool`, `description: str \| None` | `set_chat_avatar` |
+| `ChatCreateResponse` | `ok: bool`, `sn: str` | `create_chat` |
+| `PartialSuccessResponse` | `ok: bool`, `failures: list[MemberFailure] \| None` | `add_chat_members` |
+| `MembersResponse` | `ok: bool`, `members: list[UserAdmin]`, `cursor: str \| None` | `get_chat_members` |
+| `AdminsResponse` | `ok: bool`, `admins: list[UserAdmin]` | `get_chat_admins` |
+| `UsersResponse` | `ok: bool`, `users: list[UserIdItem]` | `get_blocked_users`, `get_pending_users` |
+| `FileInfo` | `type: str`, `size: int`, `filename: str`, `url: str` | `get_file_info` |
+| `BotInfo` | `user_id: str`, `nick: str \| None`, `first_name: str \| None`, `about: str \| None`, `photo: list \| None` | `get_self` |
+
+### Полные сигнатуры ключевых методов
+
+```python
+# Отправка текста
+await bot.send_text(
+    chat_id: str,
+    text: str,
+    *,
+    reply_msg_id: str | int | None = None,       # ответ на сообщение
+    forward_chat_id: str | None = None,           # пересылка (оба forward_* обязательны)
+    forward_msg_id: str | int | None = None,
+    inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+    format_: Format | dict | str | None = None,   # взаимоисключающе с parse_mode
+    parse_mode: ParseMode | None = None,
+) -> MessageResponse
+
+# Отправка файла (file ИЛИ file_id, не оба)
+await bot.send_file(
+    chat_id: str,
+    *,
+    file_id: str | None = None,                    # ранее загруженный файл
+    file: str | Path | tuple | None = None,        # путь или (filename, file_obj, content_type)
+    caption: str | None = None,
+    reply_msg_id: str | int | None = None,
+    forward_chat_id: str | None = None,
+    forward_msg_id: str | int | None = None,
+    inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+    format_: Format | dict | str | None = None,
+    parse_mode: ParseMode | None = None,
+) -> FileUploadResponse
+
+# Отправка голосового (file ИЛИ file_id, без caption/format_/parse_mode)
+await bot.send_voice(
+    chat_id: str,
+    *,
+    file_id: str | None = None,
+    file: str | Path | tuple | None = None,
+    reply_msg_id: str | int | None = None,
+    forward_chat_id: str | None = None,
+    forward_msg_id: str | int | None = None,
+    inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+) -> FileUploadResponse
+
+# Редактирование текста
+await bot.edit_text(
+    chat_id: str,
+    msg_id: str | int,
+    text: str,
+    *,
+    inline_keyboard_markup: InlineKeyboardMarkup | str | None = None,
+    format_: Format | dict | str | None = None,
+    parse_mode: ParseMode | None = None,
+) -> OkResponse
+
+# Создание чата (on-premise)
+await bot.create_chat(
+    name: str,
+    *,
+    about: str | None = None,
+    rules: str | None = None,
+    members: list[str] | None = None,
+    public: bool | None = None,
+    default_role: str | None = None,
+    join_moderation: bool | None = None,
+) -> ChatCreateResponse
+```
 
 ## Обработка ошибок
 
@@ -509,8 +873,8 @@ from vk_teams_async_bot import VKTeamsError, APIError, RateLimitError, ServerErr
 ```
 VKTeamsError
   +- APIError
+  |     +- ServerError
   |     +- RateLimitError
-  +- ServerError
   +- NetworkError
   +- TimeoutError
   +- SessionError
@@ -518,7 +882,9 @@ VKTeamsError
   +- EventParsingError
 ```
 
-Автоматический retry с экспоненциальным backoff:
+### Retry с экспоненциальным backoff
+
+Все исходящие API-вызовы бота (`send_text`, `send_file`, `get_chat_info` и др.) автоматически повторяются при временных сбоях. Retry настраивается через `RetryPolicy`:
 
 ```python
 from vk_teams_async_bot import Bot
@@ -526,8 +892,52 @@ from vk_teams_async_bot.client.retry import RetryPolicy
 
 bot = Bot(
     bot_token="TOKEN",
-    retry_policy=RetryPolicy(max_retries=3, base_delay=1.0, max_delay=30.0, jitter=True),
+    retry_policy=RetryPolicy(
+        max_retries=5,      # максимум повторных попыток (по умолчанию 3)
+        base_delay=1.0,     # начальная задержка в секундах (по умолчанию 1.0)
+        max_delay=30.0,     # максимальная задержка в секундах (по умолчанию 30.0)
+        jitter=True,        # случайный разброс задержки (по умолчанию True)
+    ),
 )
+```
+
+**Алгоритм:**
+
+1. При получении retriable-ошибки вычисляется задержка: `delay = min(base_delay * 2^attempt, max_delay)`
+2. Если `jitter=True`, задержка рандомизируется: `delay = random(0, delay)` — предотвращает thundering herd
+3. Бот ждёт `delay` секунд и повторяет запрос
+4. Процесс повторяется до `max_retries` попыток, после чего исключение пробрасывается
+
+**Какие ошибки повторяются автоматически:**
+
+- `RateLimitError` (HTTP 429) — бот читает заголовок `Retry-After` и ждёт указанное время
+- `ServerError` (HTTP 5xx) — временная проблема сервера
+- `NetworkError` — ошибки соединения (DNS, TCP, SSL)
+- `TimeoutError` — таймаут HTTP-запроса
+
+**Ошибки, которые НЕ повторяются:**
+
+- `APIError` (HTTP 4xx, кроме 429) — ошибка в запросе (неверный chat_id, недостаточно прав и т.д.)
+
+**Пример: ручной retry для собственной бизнес-логики:**
+
+```python
+from vk_teams_async_bot import Bot, VKTeamsError, NetworkError, ServerError
+from vk_teams_async_bot.client.retry import RetryPolicy, exponential_backoff_with_jitter
+
+policy = RetryPolicy(max_retries=3, base_delay=0.5, max_delay=10.0)
+
+
+async def send_with_retry(bot: Bot, chat_id: str, text: str):
+    """Отправка сообщения с ручным retry и логированием."""
+    for attempt in range(policy.max_retries + 1):
+        try:
+            return await bot.send_text(chat_id=chat_id, text=text)
+        except (NetworkError, ServerError) as e:
+            if attempt == policy.max_retries:
+                raise
+            delay = await exponential_backoff_with_jitter(policy, attempt)
+            print(f"Retry {attempt + 1}/{policy.max_retries}, delay={delay:.1f}s: {e}")
 ```
 
 ## Конфигурация бота
@@ -535,7 +945,7 @@ bot = Bot(
 | Параметр                  | По умолчанию | Описание                                  |
 | ------------------------- | ------------ | ----------------------------------------- |
 | `bot_token`               | -            | Токен бота (обязательный)                 |
-| `url`                     | -            | Базовый URL API (адрес сервера VK Teams)  |
+| `url`                     | `https://api.internal.myteam.mail.ru` | Базовый URL API (адрес сервера VK Teams)  |
 | `base_path`               | `/bot/v1`    | Базовый путь API                          |
 | `timeout`                 | `30`         | Таймаут HTTP-запроса (секунды)            |
 | `poll_time`               | `15`         | Таймаут long polling (секунды)            |
@@ -1019,7 +1429,7 @@ vk_teams_async_bot/
 
 ```bash
 # Установка dev-зависимостей
-poetry install -with dev
+poetry install --with dev
 
 # Запуск тестов
 poetry run pytest
