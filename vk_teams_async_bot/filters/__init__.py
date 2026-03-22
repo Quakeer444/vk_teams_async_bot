@@ -15,7 +15,7 @@ from .parts import (
     StickerFilter,
     VoiceFilter,
 )
-from .state import StateFilter
+from .state import StateFilter, StatesGroupFilter
 from .user import FromUserFilter
 
 __all__ = [
@@ -40,6 +40,7 @@ __all__ = [
     "CallbackDataRegexpFilter",
     # state
     "StateFilter",
+    "StatesGroupFilter",
     # parts
     "FileFilter",
     "FileTypeFilter",

@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 from .filters.base import FilterBase
 from .filters.message import CommandFilter
-from .filters.state import StateFilter
+from .filters.state import StateFilter, StatesGroupFilter
 from .fsm.context import FSMContext
 from .fsm.storage.base import BaseStorage
 from .handlers.base import BaseHandler
@@ -252,7 +252,7 @@ class Dispatcher:
             del self._user_locks[k]
 
     def _inject_storage(self, handler: BaseHandler) -> None:
-        """Ensure StateFilter instances have a reference to the storage."""
+        """Ensure StateFilter/StatesGroupFilter instances have a reference to the storage."""
         if self._storage is None or not handler.filters:
             return
 
@@ -264,5 +264,5 @@ class Dispatcher:
 
         for f in filters:
             for leaf in f.iter_filters():
-                if isinstance(leaf, StateFilter) and leaf._storage is None:
+                if isinstance(leaf, (StateFilter, StatesGroupFilter)) and leaf._storage is None:
                     leaf.set_storage(self._storage)

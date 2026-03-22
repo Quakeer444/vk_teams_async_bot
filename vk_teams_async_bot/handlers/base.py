@@ -9,7 +9,7 @@ import typing
 from typing import Any, Callable, Sequence
 
 from ..filters.base import FilterBase
-from ..filters.state import StateFilter
+from ..filters.state import StateFilter, StatesGroupFilter
 from ..types.event import BaseEvent
 
 logger = logging.getLogger(__name__)
@@ -71,10 +71,11 @@ class BaseHandler:
         """Return True if any filter requires async checking."""
         if not self.filters:
             return False
+        _async_types = (StateFilter, StatesGroupFilter)
         if isinstance(self.filters, FilterBase):
-            return any(isinstance(f, StateFilter) for f in self.filters.iter_filters())
+            return any(isinstance(f, _async_types) for f in self.filters.iter_filters())
         return any(
-            isinstance(leaf, StateFilter)
+            isinstance(leaf, _async_types)
             for f in self.filters
             for leaf in f.iter_filters()
         )
