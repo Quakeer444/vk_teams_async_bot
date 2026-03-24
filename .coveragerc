@@ -1,0 +1,10 @@
+# Coverage.py configuration for pytest-cov
+[run]
+source = vk_teams_async_bot
+
+[report]
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    if TYPE_CHECKING:
+    @overload
