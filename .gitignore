@@ -1,6 +1,7 @@
 ### main template
 # CUSTOM
 .worktrees/
+.gstack/
 
 
 
