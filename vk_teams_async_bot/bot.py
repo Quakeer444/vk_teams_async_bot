@@ -210,7 +210,6 @@ class Bot(
         if not self._running:
             logger.info("Forced shutdown")
             sys.exit(1)
-            return
         logger.info("Received shutdown signal, press Ctrl+C again to force exit")
         self._running = False
 
