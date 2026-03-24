@@ -108,7 +108,8 @@ class Bot(
         await self.close()
 
     async def close(self) -> None:
-        """Gracefully shut down: await pending tasks, then close session."""
+        """Gracefully shut down: stop polling, await pending tasks, close session."""
+        self._running = False
         await self._drain_tasks()
         await self._session.close()
 
@@ -130,7 +131,17 @@ class Bot(
             )
             for task in self._background_tasks:
                 task.cancel()
-            await asyncio.gather(*self._background_tasks, return_exceptions=True)
+            cancel_timeout = min(self._shutdown_timeout, 5.0)
+            try:
+                await asyncio.wait_for(
+                    asyncio.gather(*self._background_tasks, return_exceptions=True),
+                    timeout=cancel_timeout,
+                )
+            except asyncio.TimeoutError:
+                logger.error(
+                    "Cancelled tasks did not finish within %.1fs, abandoning",
+                    cancel_timeout,
+                )
         self._background_tasks.clear()
 
     # -- Lifecycle hooks -------------------------------------------------------
