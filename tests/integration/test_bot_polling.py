@@ -176,6 +176,168 @@ class TestPollingLoop:
         assert order == ["handler_done", "shutdown_hook"]
 
 
+class TestDrainTasks:
+    @pytest.mark.asyncio
+    async def test_drain_awaits_pending_tasks(self):
+        bot = Bot(bot_token="test-token")
+        finished = []
+
+        async def work():
+            await asyncio.sleep(0)
+            finished.append(1)
+
+        task = asyncio.create_task(work())
+        bot._background_tasks.add(task)
+
+        await bot._drain_tasks()
+
+        assert len(finished) == 1
+        assert len(bot._background_tasks) == 0
+
+    @pytest.mark.asyncio
+    async def test_drain_timeout_cancels_remaining_tasks(self):
+        bot = Bot(bot_token="test-token", shutdown_timeout=0.01)
+
+        async def never_ends():
+            try:
+                await asyncio.sleep(100)
+            except asyncio.CancelledError:
+                raise
+
+        task = asyncio.create_task(never_ends())
+        bot._background_tasks.add(task)
+
+        await bot._drain_tasks()
+
+        assert task.cancelled()
+        assert len(bot._background_tasks) == 0
+
+
+class TestStartPollingEdgeCases:
+    @pytest.mark.asyncio
+    async def test_signal_not_implemented_is_handled(self):
+        """NotImplementedError from add_signal_handler is caught and logged."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+
+        # Block start_sweep_task so stop_sweep_task has nothing to await,
+        # avoiding an async context switch that confuses coverage.py on Python 3.11.
+        with patch.object(dp, "start_sweep_task"):
+            with patch.object(bot, "_polling_loop", new_callable=AsyncMock):
+                with patch("asyncio.get_running_loop") as mock_get_loop:
+                    mock_loop = MagicMock()
+                    mock_loop.add_signal_handler.side_effect = NotImplementedError
+                    mock_get_loop.return_value = mock_loop
+                    await bot.start_polling(dp)  # must not raise
+
+    @pytest.mark.asyncio
+    async def test_finally_calls_stop_sweep_and_drain(self):
+        """stop_sweep_task and _drain_tasks are called in the finally block."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+        calls = []
+
+        original_stop = dp.stop_sweep_task
+
+        async def patched_stop():
+            calls.append("stop_sweep")
+            await original_stop()
+
+        dp.stop_sweep_task = patched_stop
+
+        original_drain = bot._drain_tasks
+
+        async def patched_drain():
+            calls.append("drain")
+            await original_drain()
+
+        bot._drain_tasks = patched_drain
+
+        # Block start_sweep_task so stop_sweep_task returns immediately
+        # (no pending task to await), preventing an async context switch
+        # that breaks coverage tracing in Python 3.11 finally blocks.
+        with patch.object(dp, "start_sweep_task"):
+            with patch.object(bot, "_polling_loop", new_callable=AsyncMock):
+                await bot.start_polling(dp)
+
+        assert "stop_sweep" in calls
+        assert "drain" in calls
+
+    @pytest.mark.asyncio
+    async def test_shutdown_hook_is_called(self):
+        """Shutdown hooks run after polling stops."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+        called = []
+
+        @bot.on_shutdown
+        async def hook(b):
+            called.append(True)
+
+        with patch.object(dp, "start_sweep_task"):
+            with patch.object(bot, "_polling_loop", new_callable=AsyncMock):
+                await bot.start_polling(dp)
+
+        assert called == [True]
+
+    @pytest.mark.asyncio
+    async def test_shutdown_hook_exception_is_swallowed(self):
+        """An exception inside a shutdown hook must not propagate."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+
+        @bot.on_shutdown
+        async def bad_hook(b):
+            raise RuntimeError("hook failure")
+
+        with patch.object(dp, "start_sweep_task"):
+            with patch.object(bot, "_polling_loop", new_callable=AsyncMock):
+                await bot.start_polling(dp)  # must not raise
+
+
+class TestPollingLoopEdgeCases:
+    @pytest.mark.asyncio
+    async def test_exception_breaks_loop_when_already_stopped(self):
+        """Line 238: if not self._running: break inside exception handler."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+
+        async def mock_get_events(**kwargs):
+            bot._running = False
+            raise RuntimeError("error while stopping")
+
+        bot.get_events = mock_get_events
+        bot._running = True
+        await bot._polling_loop(dp)  # must exit without sleeping
+
+    @pytest.mark.asyncio
+    async def test_task_done_discards_task_with_unhandled_exception(self):
+        """_task_done logs and discards a task that raised an exception."""
+        bot = Bot(bot_token="test-token")
+
+        async def failing():
+            raise ValueError("task error")
+
+        task = asyncio.create_task(failing())
+        bot._background_tasks.add(task)
+        task.add_done_callback(bot._task_done)
+
+        await asyncio.sleep(0)
+        await asyncio.sleep(0)
+
+        assert task not in bot._background_tasks
+
+    @pytest.mark.asyncio
+    async def test_safe_dispatch_swallows_feed_event_exception(self):
+        """_safe_dispatch catches exceptions from dispatcher.feed_event."""
+        bot = Bot(bot_token="test-token")
+        dp = Dispatcher()
+        event = _make_event(event_id=1)
+
+        with patch.object(dp, "feed_event", side_effect=RuntimeError("dispatch error")):
+            await bot._safe_dispatch(dp, event)  # must not raise
+
+
 class TestUpdateLastEventId:
     def test_malformed_event_with_zero_id_does_not_reset_offset(self):
         """eventId=0 from a malformed event must not reset last_event_id."""
