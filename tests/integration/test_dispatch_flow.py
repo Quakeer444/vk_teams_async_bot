@@ -8,6 +8,11 @@ from unittest.mock import AsyncMock
 
 import pytest
 
+from tests.helpers import (
+    make_callback_event,
+    make_deleted_event,
+    make_new_message_event,
+)
 from vk_teams_async_bot.dispatcher import Dispatcher
 from vk_teams_async_bot.filters.message import CommandFilter
 from vk_teams_async_bot.filters.state import StateFilter
@@ -20,74 +25,9 @@ from vk_teams_async_bot.types.event import (
     DeletedMessageEvent,
     NewMessageEvent,
     RawUnknownEvent,
-    parse_event,
 )
 
 # -- Fixtures ------------------------------------------------------------------
-
-
-def _make_new_message_event(
-    text: str = "hello",
-    event_id: int = 1,
-    chat_id: str = "chat1",
-    user_id: str = "user1",
-) -> NewMessageEvent:
-    raw = {
-        "eventId": event_id,
-        "type": "newMessage",
-        "payload": {
-            "msgId": "msg1",
-            "chat": {"chatId": chat_id, "type": "private", "title": ""},
-            "from": {"userId": user_id, "firstName": "Test"},
-            "text": text,
-            "timestamp": 1000,
-        },
-    }
-    event = parse_event(raw)
-    assert isinstance(event, NewMessageEvent)
-    return event
-
-
-def _make_callback_event(
-    callback_data: str = "btn1",
-    event_id: int = 2,
-    include_message: bool = False,
-) -> CallbackQueryEvent:
-    raw = {
-        "eventId": event_id,
-        "type": "callbackQuery",
-        "payload": {
-            "chat": {"chatId": "chat1", "type": "private", "title": ""},
-            "from": {"userId": "user1", "firstName": "Test"},
-            "queryId": "q1",
-            "callbackData": callback_data,
-        },
-    }
-    if include_message:
-        raw["payload"]["message"] = {
-            "msgId": "msg_in_cb",
-            "from": {"userId": "user1", "firstName": "Test"},
-            "text": "original message",
-            "timestamp": 999,
-        }
-    event = parse_event(raw)
-    assert isinstance(event, CallbackQueryEvent)
-    return event
-
-
-def _make_deleted_event(event_id: int = 3) -> DeletedMessageEvent:
-    raw = {
-        "eventId": event_id,
-        "type": "deletedMessage",
-        "payload": {
-            "chat": {"chatId": "chat1", "type": "private", "title": ""},
-            "msgId": "msg1",
-            "timestamp": 1000,
-        },
-    }
-    event = parse_event(raw)
-    assert isinstance(event, DeletedMessageEvent)
-    return event
 
 
 class FakeBot:
@@ -108,7 +48,7 @@ class TestDispatchFlow:
 
         dp.add_handler(MessageHandler(callback=callback))
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         callback.assert_awaited_once()
@@ -122,7 +62,7 @@ class TestDispatchFlow:
 
         dp.add_handler(CallbackQueryHandler(callback=callback))
 
-        event = _make_callback_event()
+        event = make_callback_event()
         await dp.feed_event(event, FakeBot())
 
         callback.assert_awaited_once()
@@ -136,7 +76,7 @@ class TestDispatchFlow:
         dp.add_handler(MessageHandler(callback=first))
         dp.add_handler(MessageHandler(callback=second))
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         first.assert_awaited_once()
@@ -149,7 +89,7 @@ class TestDispatchFlow:
 
         dp.add_handler(MessageHandler(callback=msg_callback))
 
-        event = _make_deleted_event()
+        event = make_deleted_event()
         await dp.feed_event(event, FakeBot())
 
         msg_callback.assert_not_awaited()
@@ -164,7 +104,7 @@ class TestDispatchFlow:
             MessageHandler(callback=callback, filters=CommandFilter("start"))
         )
 
-        event = _make_new_message_event(text="not a command")
+        event = make_new_message_event(text="not a command")
         await dp.feed_event(event, FakeBot())
 
         callback.assert_not_awaited()
@@ -178,7 +118,7 @@ class TestDispatchFlow:
             MessageHandler(callback=callback, filters=CommandFilter("start"))
         )
 
-        event = _make_new_message_event(text="/start")
+        event = make_new_message_event(text="/start")
         await dp.feed_event(event, FakeBot())
 
         callback.assert_awaited_once()
@@ -234,7 +174,7 @@ class TestDecoratorShortcuts:
 
         dp.handlers[0].callback = callback
 
-        event = _make_new_message_event(text="/help")
+        event = make_new_message_event(text="/help")
         await dp.feed_event(event, FakeBot())
         callback.assert_awaited_once()
 
@@ -251,7 +191,7 @@ class TestDecoratorShortcuts:
 
         dp.handlers[0].callback = callback
 
-        event = _make_new_message_event(text="/start")
+        event = make_new_message_event(text="/start")
         await dp.feed_event(event, FakeBot())
         callback.assert_awaited_once()
 
@@ -266,7 +206,7 @@ class TestDecoratorShortcuts:
 
         dp.handlers[0].callback = callback
 
-        event = _make_new_message_event(text="/help")
+        event = make_new_message_event(text="/help")
         await dp.feed_event(event, FakeBot())
         callback.assert_not_awaited()
 
@@ -317,7 +257,7 @@ class TestMiddlewareChain:
         async def handler(event, bot):
             log.append("handler")
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         assert log == ["A:before", "B:before", "handler", "B:after", "A:after"]
@@ -334,7 +274,7 @@ class TestMiddlewareChain:
             nonlocal handler_called
             handler_called = True
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         assert not handler_called
@@ -354,7 +294,7 @@ class TestMiddlewareChain:
         async def handler(event, bot):
             pass
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
 
@@ -379,7 +319,7 @@ class TestFSMContextInjection:
         async def handler(event, bot):
             pass
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         assert len(fsm_contexts) == 1
@@ -401,7 +341,7 @@ class TestFSMContextInjection:
         async def fallback(event, bot):
             pass
 
-        event = _make_new_message_event(text="/start")
+        event = make_new_message_event(text="/start")
         bot = FakeBot()
         await dp.feed_event(event, bot)
 
@@ -426,7 +366,7 @@ class TestFSMContextInjection:
         async def handler(event, bot):
             pass
 
-        event = _make_new_message_event()
+        event = make_new_message_event()
         await dp.feed_event(event, FakeBot())
 
         assert fsm_contexts[0] is None
@@ -445,10 +385,10 @@ class TestFSMContextInjection:
 
         bot = FakeBot()
 
-        event_chat1 = _make_new_message_event(chat_id="chat1", user_id="user1")
+        event_chat1 = make_new_message_event(chat_id="chat1", user_id="user1")
         await dp.feed_event(event_chat1, bot)
 
-        event_chat2 = _make_new_message_event(chat_id="chat2", user_id="user1")
+        event_chat2 = make_new_message_event(chat_id="chat2", user_id="user1")
         await dp.feed_event(event_chat2, bot)
 
         state1 = await storage.get_state(("chat1", "user1"))
@@ -477,7 +417,7 @@ class TestCallbackWithMessage:
             )
         )
 
-        event = _make_callback_event(include_message=True)
+        event = make_callback_event(include_message=True)
         await dp.feed_event(event, FakeBot())
 
         assert len(received_events) == 1
@@ -515,10 +455,10 @@ class TestStatefulCallbackFlow:
 
         bot = FakeBot()
 
-        msg_event = _make_new_message_event(text="/start")
+        msg_event = make_new_message_event(text="/start")
         await dp.feed_event(msg_event, bot)
 
-        cb_event = _make_callback_event(callback_data="confirm")
+        cb_event = make_callback_event(callback_data="confirm")
         await dp.feed_event(cb_event, bot)
 
         assert len(callback_received) == 1
@@ -543,7 +483,7 @@ class TestStatefulCallbackFlow:
         )
 
         bot = FakeBot()
-        cb_event = _make_callback_event(callback_data="confirm")
+        cb_event = make_callback_event(callback_data="confirm")
         await dp.feed_event(cb_event, bot)
 
         assert len(callback_received) == 0
@@ -567,9 +507,9 @@ class TestUserLockStability:
             order.append(f"end:{event.text}")
 
         bot = FakeBot()
-        e1 = _make_new_message_event(text="first", chat_id="c1", user_id="u1")
-        e2 = _make_new_message_event(text="second", chat_id="c1", user_id="u1")
-        e3 = _make_new_message_event(text="third", chat_id="c1", user_id="u1")
+        e1 = make_new_message_event(text="first", chat_id="c1", user_id="u1")
+        e2 = make_new_message_event(text="second", chat_id="c1", user_id="u1")
+        e3 = make_new_message_event(text="third", chat_id="c1", user_id="u1")
 
         await asyncio.gather(
             dp.feed_event(e1, bot),
@@ -615,8 +555,8 @@ class TestFSMConcurrency:
             await fsm_context.set_state(States.active)
 
         bot = FakeBot()
-        e1 = _make_new_message_event(chat_id="chat1", user_id="user1")
-        e2 = _make_new_message_event(chat_id="chat2", user_id="user2")
+        e1 = make_new_message_event(chat_id="chat1", user_id="user1")
+        e2 = make_new_message_event(chat_id="chat2", user_id="user2")
 
         await asyncio.gather(
             dp.feed_event(e1, bot),
@@ -652,8 +592,8 @@ class TestFSMConcurrency:
             order.append("fallback")
 
         bot = FakeBot()
-        e1 = _make_new_message_event(text="/start", chat_id="c1", user_id="u1")
-        e2 = _make_new_message_event(text="John", chat_id="c1", user_id="u1")
+        e1 = make_new_message_event(text="/start", chat_id="c1", user_id="u1")
+        e2 = make_new_message_event(text="John", chat_id="c1", user_id="u1")
 
         await asyncio.gather(
             dp.feed_event(e1, bot),
