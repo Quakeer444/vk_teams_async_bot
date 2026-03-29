@@ -17,7 +17,7 @@ from vk_teams_async_bot.errors import (
     TimeoutError,
 )
 
-from .log_filter import TokenSanitizingFilter
+from .log_filter import ensure_token_sanitizing_filter
 from .retry import RetryPolicy, exponential_backoff_with_jitter
 
 logger = logging.getLogger(__name__)
@@ -69,11 +69,9 @@ class VKTeamsSession:
         self._session: ClientSession | None = None
         self._download_session: ClientSession | None = None
         self._session_lock = asyncio.Lock()
-        # Remove any existing TokenSanitizingFilter before adding new one
-        for f in logger.filters[:]:
-            if isinstance(f, TokenSanitizingFilter):
-                logger.removeFilter(f)
-        logger.addFilter(TokenSanitizingFilter(bot_token))
+        # Protect both HTTP-client logs and polling traceback logs.
+        for target_logger in (logger, logging.getLogger("vk_teams_async_bot.bot")):
+            ensure_token_sanitizing_filter(target_logger, bot_token)
 
     # -- Context manager protocol ------------------------------------------
 
