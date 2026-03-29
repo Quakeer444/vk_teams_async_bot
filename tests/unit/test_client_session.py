@@ -294,15 +294,15 @@ class TestSessionDownload:
     @pytest.mark.asyncio
     async def test_download_returns_bytes(self, no_retry_policy: RetryPolicy) -> None:
         """Happy path: download returns file content as bytes."""
-        session = VKTeamsSession(
+        async with VKTeamsSession(
             BASE_URL,
             BASE_PATH,
             TOKEN,
             retry_policy=no_retry_policy,
-        )
-        with aioresponses() as m:
-            m.get(DOWNLOAD_URL_RE, body=b"file content")
-            result = await session.download(DOWNLOAD_URL)
+        ) as session:
+            with aioresponses() as m:
+                m.get(DOWNLOAD_URL_RE, body=b"file content")
+                result = await session.download(DOWNLOAD_URL)
         assert result == b"file content"
 
     @pytest.mark.asyncio
@@ -329,16 +329,16 @@ class TestSessionDownload:
         self, fast_retry_policy: RetryPolicy
     ) -> None:
         """First call returns 500, second 200. Assert retry works."""
-        session = VKTeamsSession(
+        async with VKTeamsSession(
             BASE_URL,
             BASE_PATH,
             TOKEN,
             retry_policy=fast_retry_policy,
-        )
-        with aioresponses() as m:
-            m.get(DOWNLOAD_URL_RE, status=500)
-            m.get(DOWNLOAD_URL_RE, body=b"ok")
-            result = await session.download(DOWNLOAD_URL)
+        ) as session:
+            with aioresponses() as m:
+                m.get(DOWNLOAD_URL_RE, status=500)
+                m.get(DOWNLOAD_URL_RE, body=b"ok")
+                result = await session.download(DOWNLOAD_URL)
         assert result == b"ok"
 
     @pytest.mark.asyncio
@@ -346,17 +346,17 @@ class TestSessionDownload:
         self, no_retry_policy: RetryPolicy
     ) -> None:
         """404 raises APIError immediately."""
-        session = VKTeamsSession(
+        async with VKTeamsSession(
             BASE_URL,
             BASE_PATH,
             TOKEN,
             retry_policy=no_retry_policy,
-        )
-        with aioresponses() as m:
-            m.get(DOWNLOAD_URL_RE, status=404)
-            with pytest.raises(APIError) as exc_info:
-                await session.download(DOWNLOAD_URL)
-            assert exc_info.value.status_code == 404
+        ) as session:
+            with aioresponses() as m:
+                m.get(DOWNLOAD_URL_RE, status=404)
+                with pytest.raises(APIError) as exc_info:
+                    await session.download(DOWNLOAD_URL)
+                assert exc_info.value.status_code == 404
 
     @pytest.mark.asyncio
     async def test_download_retries_on_network_error(
@@ -365,20 +365,20 @@ class TestSessionDownload:
         """Network error triggers retry, raises NetworkError on exhaustion."""
         import aiohttp as _aiohttp
 
-        session = VKTeamsSession(
+        async with VKTeamsSession(
             BASE_URL,
             BASE_PATH,
             TOKEN,
             retry_policy=fast_retry_policy,
-        )
-        with aioresponses() as m:
-            for _ in range(3):
-                m.get(
-                    DOWNLOAD_URL_RE,
-                    exception=_aiohttp.ClientConnectionError("conn refused"),
-                )
-            with pytest.raises(NetworkError):
-                await session.download(DOWNLOAD_URL)
+        ) as session:
+            with aioresponses() as m:
+                for _ in range(3):
+                    m.get(
+                        DOWNLOAD_URL_RE,
+                        exception=_aiohttp.ClientConnectionError("conn refused"),
+                    )
+                with pytest.raises(NetworkError):
+                    await session.download(DOWNLOAD_URL)
 
     @pytest.mark.asyncio
     async def test_post_does_not_retry_by_default(
@@ -431,17 +431,17 @@ class TestSessionDownload:
         self, fast_retry_policy: RetryPolicy
     ) -> None:
         """Timeout triggers retry, raises TimeoutError on exhaustion."""
-        session = VKTeamsSession(
+        async with VKTeamsSession(
             BASE_URL,
             BASE_PATH,
             TOKEN,
             retry_policy=fast_retry_policy,
-        )
-        with aioresponses() as m:
-            for _ in range(3):
-                m.get(DOWNLOAD_URL_RE, exception=asyncio.TimeoutError())
-            with pytest.raises(TimeoutError):
-                await session.download(DOWNLOAD_URL)
+        ) as session:
+            with aioresponses() as m:
+                for _ in range(3):
+                    m.get(DOWNLOAD_URL_RE, exception=asyncio.TimeoutError())
+                with pytest.raises(TimeoutError):
+                    await session.download(DOWNLOAD_URL)
 
     @pytest.mark.asyncio
     async def test_200_ok_false_ratelimit_raises_rate_limit_error(
