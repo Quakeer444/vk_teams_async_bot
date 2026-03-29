@@ -32,11 +32,35 @@ class TestChatInfo:
         assert isinstance(result, ChatInfoPrivate)
         assert result.type == "private"
 
+    async def test_get_chat_info_private_all_fields(self, bot, test_user_id):
+        result = await bot.get_chat_info(chat_id=test_user_id)
+        assert isinstance(result, ChatInfoPrivate)
+        assert result.type == "private"
+        assert result.first_name is not None
+        assert isinstance(result.first_name, str)
+        assert result.is_bot is not None
+        assert isinstance(result.is_bot, bool)
+        if result.nick is not None:
+            assert isinstance(result.nick, str)
+
     async def test_get_chat_info_group(self, bot, test_group_id):
         result = await bot.get_chat_info(chat_id=test_group_id)
         assert isinstance(result, ChatInfoGroup)
         assert result.type == "group"
         assert result.title is not None
+
+    async def test_get_chat_info_group_all_fields(self, bot, test_group_id):
+        result = await bot.get_chat_info(chat_id=test_group_id)
+        assert isinstance(result, ChatInfoGroup)
+        assert result.type == "group"
+        assert isinstance(result.title, str)
+        assert len(result.title) > 0
+        if result.about is not None:
+            assert isinstance(result.about, str)
+        if result.rules is not None:
+            assert isinstance(result.rules, str)
+        if result.public is not None:
+            assert isinstance(result.public, bool)
 
     async def test_get_chat_admins(self, bot, test_group_id):
         result = await bot.get_chat_admins(chat_id=test_group_id)
@@ -45,11 +69,29 @@ class TestChatInfo:
         assert len(result.admins) > 0
         assert isinstance(result.admins[0], UserAdmin)
 
+    async def test_get_chat_admins_all_fields(self, bot, test_group_id):
+        result = await bot.get_chat_admins(chat_id=test_group_id)
+        assert isinstance(result, AdminsResponse)
+        assert len(result.admins) > 0
+        for admin in result.admins:
+            assert isinstance(admin, UserAdmin)
+            assert isinstance(admin.user_id, str)
+            assert len(admin.user_id) > 0
+            if admin.creator is not None:
+                assert isinstance(admin.creator, bool)
+
     async def test_get_chat_members(self, bot, test_group_id):
         result = await bot.get_chat_members(chat_id=test_group_id)
         assert isinstance(result, MembersResponse)
         assert isinstance(result.members, list)
         assert len(result.members) > 0
+
+    async def test_get_chat_members_contains_bot(self, bot, test_group_id):
+        self_info = await bot.get_self()
+        result = await bot.get_chat_members(chat_id=test_group_id)
+        assert isinstance(result, MembersResponse)
+        member_ids = [m.user_id for m in result.members]
+        assert self_info.user_id in member_ids
 
     async def test_get_blocked_users(self, bot, test_group_id):
         result = await bot.get_blocked_users(chat_id=test_group_id)
@@ -87,6 +129,22 @@ class TestChatModification:
         )
         assert isinstance(result, OkResponse)
         assert result.ok is True
+
+    async def test_group_settings_roundtrip(self, bot, test_group_id):
+        ts = int(time.time())
+        title = f"Roundtrip {ts}"
+        about = f"About {ts}"
+        rules = f"Rules {ts}"
+
+        await bot.set_chat_title(chat_id=test_group_id, title=title)
+        await bot.set_chat_about(chat_id=test_group_id, about=about)
+        await bot.set_chat_rules(chat_id=test_group_id, rules=rules)
+
+        info = await bot.get_chat_info(chat_id=test_group_id)
+        assert isinstance(info, ChatInfoGroup)
+        assert info.title == title
+        assert info.about == about
+        assert info.rules == rules
 
     async def test_set_chat_about(self, bot, test_group_id):
         result = await bot.set_chat_about(

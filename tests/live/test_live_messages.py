@@ -23,6 +23,53 @@ async def test_send_text_plain(bot, test_user_id):
     assert isinstance(result.msg_id, str)
 
 
+async def test_send_text_msg_id_format(bot, test_user_id):
+    result = await bot.send_text(chat_id=test_user_id, text="live test: msg_id format")
+    assert isinstance(result, MessageResponse)
+    assert result.ok is True
+    assert isinstance(result.msg_id, str)
+    assert len(result.msg_id) > 0
+
+
+async def test_send_file_returns_file_id_and_msg_id(bot, test_user_id):
+    content = BytesIO(b"file id and msg id test")
+    result = await bot.send_file(
+        chat_id=test_user_id,
+        file=("fields_test.txt", content, "text/plain"),
+    )
+    assert isinstance(result, FileUploadResponse)
+    assert result.ok is True
+    assert isinstance(result.file_id, str)
+    assert len(result.file_id) > 0
+    assert isinstance(result.msg_id, str)
+    assert len(result.msg_id) > 0
+
+
+async def test_send_voice_returns_file_id_and_msg_id(bot, test_user_id, fixtures_dir):
+    mp3_path = fixtures_dir / "test.mp3"
+    result = await bot.send_voice(
+        chat_id=test_user_id,
+        file=str(mp3_path),
+    )
+    assert isinstance(result, FileUploadResponse)
+    assert result.ok is True
+    assert isinstance(result.file_id, str)
+    assert len(result.file_id) > 0
+    assert isinstance(result.msg_id, str)
+    assert len(result.msg_id) > 0
+
+
+async def test_edit_text_ok_response(bot, test_user_id):
+    msg = await bot.send_text(chat_id=test_user_id, text="live test: edit ok response")
+    result = await bot.edit_text(
+        chat_id=test_user_id,
+        msg_id=msg.msg_id,
+        text="live test: edited ok response",
+    )
+    assert isinstance(result, OkResponse)
+    assert result.ok is True
+
+
 async def test_send_text_markdown(bot, test_user_id):
     result = await bot.send_text(
         chat_id=test_user_id,

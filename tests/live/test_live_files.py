@@ -24,6 +24,55 @@ async def test_get_file_info(bot, test_user_id):
     assert file_info.url is not None
 
 
+async def test_file_info_txt_fields(bot, test_user_id):
+    content = BytesIO(b"field validation content")
+    upload = await bot.send_file(
+        chat_id=test_user_id,
+        file=("field_test.txt", content, "text/plain"),
+    )
+    file_info = await bot.get_file_info(file_id=upload.file_id)
+    assert isinstance(file_info.type, str)
+    assert len(file_info.type) > 0
+    assert isinstance(file_info.filename, str)
+    assert len(file_info.filename) > 0
+    assert isinstance(file_info.size, int)
+    assert file_info.size > 0
+    assert isinstance(file_info.url, str)
+    assert file_info.url.startswith("http")
+
+
+async def test_file_info_image_type(bot, test_user_id, fixtures_dir):
+    png_path = fixtures_dir / "test.png"
+    upload = await bot.send_file(
+        chat_id=test_user_id,
+        file=str(png_path),
+    )
+    file_info = await bot.get_file_info(file_id=upload.file_id)
+    assert "image" in file_info.type.lower()
+
+
+async def test_file_info_audio_type(bot, test_user_id, fixtures_dir):
+    ogg_path = fixtures_dir / "test.ogg"
+    upload = await bot.send_voice(
+        chat_id=test_user_id,
+        file=str(ogg_path),
+    )
+    file_info = await bot.get_file_info(file_id=upload.file_id)
+    assert isinstance(file_info.type, str)
+    assert len(file_info.type) > 0
+
+
+async def test_download_file_byte_compare(bot, test_user_id):
+    original_content = b"exact byte compare content 1234567890"
+    upload = await bot.send_file(
+        chat_id=test_user_id,
+        file=("byte_compare.txt", BytesIO(original_content), "text/plain"),
+    )
+    file_info = await bot.get_file_info(file_id=upload.file_id)
+    downloaded = await bot.download_file(file_info.url)
+    assert downloaded == original_content
+
+
 async def test_download_file(bot, test_user_id):
     file_content = b"live test download content"
     upload = await bot.send_file(
