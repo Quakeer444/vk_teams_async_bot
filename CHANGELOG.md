@@ -1,5 +1,47 @@
 # Changelog
 
+## 1.1.0 (2026-03-31)
+
+### New Features
+
+- `StatesGroupFilter` for matching any state within an FSM states group
+- `StateFilter` extended: wildcard (`"*"`) and `None` matching (match "no state")
+- Comprehensive DEBUG logging across all key modules (bot, dispatcher, handlers, middleware, FSM, client, methods)
+
+### Bug Fixes
+
+- Redis FSM: use `WATCH/MULTI` for race-safe `update_data` (fixes race condition on concurrent updates)
+- `PinnedMessageEvent`: add missing `format_` field
+- Export previously undocumented types from `__init__.py`
+- `close()` now properly stops polling + adds timeout to post-cancel gather
+- Remove unreachable return after `sys.exit` in signal handling
+
+### Security
+
+- Sanitize tokens in tracebacks (not just logs)
+- Support multiple tokens in sanitizing log filter
+- Cover bot logger with sanitizing filter
+- Pin GitHub Actions by SHA (supply chain protection)
+
+### Documentation
+
+- Expand README: full API reference, event models, scheduled notifications, rate limiting, table of contents
+- Document `StatesGroupFilter` and `StateFilter` modes (wildcard/None)
+
+### Tests
+
+- E2E test suite: dispatcher + real Bot API (FSM, middleware, pipeline)
+- Live tests: field validation and error cases (chats, files, messages)
+- Unit tests: FSM dispatch integration, edge cases (drain_tasks, polling loop, context manager, close)
+- Refactor: extract shared event builders to `tests/helpers.py`
+
+### Chore
+
+- Pre-commit hooks: black, isort
+- `.coveragerc` for coverage configuration
+- `CODEOWNERS` for automatic review assignment
+- `context7.json` for library ownership verification
+
 ## 1.0.0 (2026-03-21)
 
 This is a major release with a full rewrite of the library architecture. See [MIGRATION.md](MIGRATION.md) for upgrade instructions.
