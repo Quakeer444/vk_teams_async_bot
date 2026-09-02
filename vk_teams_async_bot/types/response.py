@@ -3,7 +3,7 @@ from __future__ import annotations
 from pydantic import Field
 
 from .base import VKTeamsResponseModel
-from .user import UserAdmin
+from .user import ThreadSubscriber, UserAdmin
 
 
 class OkResponse(VKTeamsResponseModel):
@@ -64,3 +64,14 @@ class UsersResponse(VKTeamsResponseModel):
 class ErrorResponse(VKTeamsResponseModel):
     ok: bool
     description: str
+
+
+class ThreadResponse(VKTeamsResponseModel):
+    ok: bool = True
+    thread_id: str = Field(alias="threadId")
+
+
+class ThreadSubscribersResponse(VKTeamsResponseModel):
+    ok: bool = True
+    subscribers: list[ThreadSubscriber]
+    cursor: str | None = None

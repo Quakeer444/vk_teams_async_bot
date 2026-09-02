@@ -10,7 +10,7 @@
 
 ## Возможности
 
-- **28 методов API** - полное покрытие VK Teams Bot API
+- **31 метод API** - полное покрытие VK Teams Bot API, включая треды (обсуждения)
 - **Event-driven архитектура** - long polling, dispatcher, декораторы, фильтры
 - **FSM** - конечный автомат для многошаговых диалогов (`MemoryStorage` для простых сценариев, `RedisStorage` для масштабируемых и отказоустойчивых)
 - **Middleware** - хуки до и после обработчика
@@ -96,6 +96,7 @@ python bot.py
 - [Методы API](#методы-api)
   - [Сообщения](#сообщения)
   - [Чаты](#чаты)
+  - [Треды](#треды)
   - [Файлы и сервис](#файлы-и-сервис)
   - [Модели ответов API](#модели-ответов-api)
   - [Полные сигнатуры ключевых методов](#полные-сигнатуры-ключевых-методов)
@@ -791,6 +792,14 @@ for part in event.parts or []:
 
 \* Только для on-premise, требуется настройка администратором.
 
+### Треды
+
+| Метод | Endpoint | Возвращает |
+| ----- | -------- | ---------- |
+| `create_thread(chat_id, msg_id)` | `/threads/add` | `ThreadResponse` |
+| `set_thread_autosubscribe(chat_id, enable, with_existing=...)` | `/threads/autosubscribe` | `OkResponse` |
+| `get_thread_subscribers(thread_id, page_size=..., cursor=...)` | `/threads/subscribers/get` | `ThreadSubscribersResponse` |
+
 ### Файлы и сервис
 
 | Метод | Описание | Возвращает |
@@ -813,6 +822,8 @@ for part in event.parts or []:
 | `MembersResponse` | `ok: bool`, `members: list[UserAdmin]`, `cursor: str \| None` | `get_chat_members` |
 | `AdminsResponse` | `ok: bool`, `admins: list[UserAdmin]` | `get_chat_admins` |
 | `UsersResponse` | `ok: bool`, `users: list[UserIdItem]` | `get_blocked_users`, `get_pending_users` |
+| `ThreadResponse` | `ok: bool`, `thread_id: str` | `create_thread` |
+| `ThreadSubscribersResponse` | `ok: bool`, `subscribers: list[ThreadSubscriber]`, `cursor: str \| None` | `get_thread_subscribers` |
 | `FileInfo` | `type: str`, `size: int`, `filename: str`, `url: str` | `get_file_info` |
 | `BotInfo` | `user_id: str`, `nick: str \| None`, `first_name: str \| None`, `about: str \| None`, `photo: list \| None` | `get_self` |
 

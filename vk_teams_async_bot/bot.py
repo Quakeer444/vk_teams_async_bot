@@ -18,6 +18,7 @@ from .methods.events import EventMethods
 from .methods.files import FileMethods
 from .methods.messages import MessageMethods
 from .methods.self_ import SelfMethods
+from .methods.threads import ThreadMethods
 from .types.event import BaseEvent, RawUnknownEvent
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ class Bot(
     ChatMethods,
     FileMethods,
     EventMethods,
+    ThreadMethods,
 ):
     """VK Teams Bot with full API coverage.
 

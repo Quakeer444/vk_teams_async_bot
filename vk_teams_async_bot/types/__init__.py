@@ -53,10 +53,12 @@ from .response import (
     OkResponse,
     OkWithDescriptionResponse,
     PartialSuccessResponse,
+    ThreadResponse,
+    ThreadSubscribersResponse,
     UserIdItem,
     UsersResponse,
 )
-from .user import BotInfo, PhotoUrl, User, UserAdmin
+from .user import BotInfo, PhotoUrl, ThreadSubscriber, ThreadUserState, User, UserAdmin
 
 __all__ = [
     "VKTeamsModel",
@@ -95,6 +97,10 @@ __all__ = [
     "UserIdItem",
     "UsersResponse",
     "ErrorResponse",
+    "ThreadResponse",
+    "ThreadSubscribersResponse",
+    "ThreadSubscriber",
+    "ThreadUserState",
     # message parts
     "NestedMessage",
     "FilePart",

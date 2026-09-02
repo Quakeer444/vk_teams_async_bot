@@ -21,6 +21,7 @@ from vk_teams_async_bot.methods.events import EventMethods
 from vk_teams_async_bot.methods.files import FileMethods
 from vk_teams_async_bot.methods.messages import MessageMethods
 from vk_teams_async_bot.methods.self_ import SelfMethods
+from vk_teams_async_bot.methods.threads import ThreadMethods
 from vk_teams_async_bot.types.chat import (
     ChatInfoChannel,
     ChatInfoGroup,
@@ -43,6 +44,8 @@ from vk_teams_async_bot.types.response import (
     OkResponse,
     OkWithDescriptionResponse,
     PartialSuccessResponse,
+    ThreadResponse,
+    ThreadSubscribersResponse,
     UsersResponse,
 )
 from vk_teams_async_bot.types.user import BotInfo
@@ -102,6 +105,11 @@ def file_mixin():
 @pytest.fixture
 def event_mixin():
     return _make_mixin(EventMethods)
+
+
+@pytest.fixture
+def thread_mixin():
+    return _make_mixin(ThreadMethods)
 
 
 # ===================================================================
@@ -1085,3 +1093,114 @@ class TestGetEvents:
         result = await event_mixin.get_events(0, 10)
 
         assert result == []
+
+
+# ===================================================================
+# ThreadMethods
+# ===================================================================
+
+
+class TestCreateThread:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, thread_mixin):
+        thread_mixin._session.get.return_value = {
+            "threadId": "2601@chat.agent",
+            "ok": True,
+        }
+
+        result = await thread_mixin.create_thread("chat1", 42)
+
+        thread_mixin._session.get.assert_awaited_once_with(
+            "/threads/add", chatId="chat1", msgId=42
+        )
+        assert isinstance(result, ThreadResponse)
+        assert result.thread_id == "2601@chat.agent"
+
+    @pytest.mark.asyncio
+    async def test_with_string_msg_id(self, thread_mixin):
+        thread_mixin._session.get.return_value = {
+            "threadId": "2601@chat.agent",
+            "ok": True,
+        }
+
+        result = await thread_mixin.create_thread("chat1", "42")
+
+        call_kwargs = thread_mixin._session.get.call_args[1]
+        assert call_kwargs["msgId"] == "42"
+        assert isinstance(result, ThreadResponse)
+
+
+class TestSetThreadAutosubscribe:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, thread_mixin):
+        thread_mixin._session.get.return_value = {"ok": True}
+
+        result = await thread_mixin.set_thread_autosubscribe("chat1", True)
+
+        thread_mixin._session.get.assert_awaited_once_with(
+            "/threads/autosubscribe",
+            chatId="chat1",
+            enable="true",
+            withExisting=None,
+        )
+        assert isinstance(result, OkResponse)
+        assert result.ok is True
+
+    @pytest.mark.asyncio
+    async def test_disable_with_existing(self, thread_mixin):
+        thread_mixin._session.get.return_value = {"ok": True}
+
+        result = await thread_mixin.set_thread_autosubscribe(
+            "chat1", False, with_existing=True
+        )
+
+        call_kwargs = thread_mixin._session.get.call_args[1]
+        assert call_kwargs["enable"] == "false"
+        assert call_kwargs["withExisting"] == "true"
+        assert isinstance(result, OkResponse)
+
+
+class TestGetThreadSubscribers:
+    @pytest.mark.asyncio
+    async def test_happy_path(self, thread_mixin):
+        thread_mixin._session.get.return_value = {
+            "cursor": "next_page",
+            "subscribers": [
+                {"sn": "user1@example.com", "userState": {"lastseen": 1752920423}},
+                {"sn": "user2@example.com"},
+            ],
+            "ok": True,
+        }
+
+        result = await thread_mixin.get_thread_subscribers(
+            "2601@chat.agent", page_size=10
+        )
+
+        thread_mixin._session.get.assert_awaited_once_with(
+            "/threads/subscribers/get",
+            threadId="2601@chat.agent",
+            pageSize=10,
+            cursor=None,
+        )
+        assert isinstance(result, ThreadSubscribersResponse)
+        assert result.cursor == "next_page"
+        assert len(result.subscribers) == 2
+        assert result.subscribers[0].sn == "user1@example.com"
+        assert result.subscribers[0].user_state.lastseen == 1752920423
+        assert result.subscribers[1].user_state is None
+
+    @pytest.mark.asyncio
+    async def test_with_cursor(self, thread_mixin):
+        thread_mixin._session.get.return_value = {
+            "subscribers": [{"sn": "user3@example.com"}],
+            "ok": True,
+        }
+
+        result = await thread_mixin.get_thread_subscribers(
+            "2601@chat.agent", cursor="page2"
+        )
+
+        call_kwargs = thread_mixin._session.get.call_args[1]
+        assert call_kwargs["cursor"] == "page2"
+        assert isinstance(result, ThreadSubscribersResponse)
+        assert result.cursor is None

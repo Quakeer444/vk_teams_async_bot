@@ -28,3 +28,12 @@ class UserAdmin(VKTeamsResponseModel):
     user_id: str = Field(alias="userId")
     creator: bool | None = None
     admin: bool | None = None
+
+
+class ThreadUserState(VKTeamsResponseModel):
+    lastseen: int
+
+
+class ThreadSubscriber(VKTeamsResponseModel):
+    sn: str
+    user_state: ThreadUserState | None = Field(default=None, alias="userState")

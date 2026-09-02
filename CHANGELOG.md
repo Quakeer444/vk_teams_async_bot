@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### New Features
+
+- `ThreadMethods` mixin — поддержка Threads API: `create_thread` (`/threads/add`), `set_thread_autosubscribe` (`/threads/autosubscribe`), `get_thread_subscribers` (`/threads/subscribers/get`)
+- Новые типы: `ThreadResponse`, `ThreadSubscribersResponse`, `ThreadSubscriber`, `ThreadUserState`
+
 ## 1.1.0 (2026-03-31)
 
 ### New Features
